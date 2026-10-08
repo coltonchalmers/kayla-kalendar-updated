@@ -5,6 +5,130 @@ export interface EmailElements {
   google_calendar: boolean;
 }
 
+export type EmailComponentType =
+  | 'heading'
+  | 'text'
+  | 'button'
+  | 'divider'
+  | 'spacer'
+  | 'image'
+  | 'row'
+  | 'column'
+  | 'link'
+  | 'html';
+
+export type TextAlign = 'left' | 'center' | 'right';
+
+export interface HeadingProps {
+  type: 'heading';
+  text: string;
+  level?: 1 | 2 | 3;
+  textAlign?: TextAlign;
+}
+
+export interface TextProps {
+  type: 'text';
+  text: string;
+  textAlign?: TextAlign;
+}
+
+export interface ButtonProps {
+  type: 'button';
+  text: string;
+  href: string;
+  buttonColor?: string;
+  textColor?: string;
+  textAlign?: TextAlign;
+}
+
+export interface DividerProps {
+  type: 'divider';
+  color?: string;
+  padding?: number;
+}
+
+export interface SpacerProps {
+  type: 'spacer';
+  height?: number;
+}
+
+export interface ImageProps {
+  type: 'image';
+  src: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface RowProps {
+  type: 'row';
+}
+
+export interface ColumnProps {
+  type: 'column';
+  width?: number;
+}
+
+export interface LinkProps {
+  type: 'link';
+  text: string;
+  href: string;
+}
+
+export interface HtmlProps {
+  type: 'html';
+  content: string;
+}
+
+export type EmailComponentProps =
+  | HeadingProps
+  | TextProps
+  | ButtonProps
+  | DividerProps
+  | SpacerProps
+  | ImageProps
+  | RowProps
+  | ColumnProps
+  | LinkProps
+  | HtmlProps;
+
+export interface EmailComponent {
+  id: string;
+  type: EmailComponentType;
+  props: EmailComponentProps;
+  children?: EmailComponent[];
+  locked?: boolean;
+}
+
+export interface EmailTemplate {
+  component: EmailComponent;
+  subject: string;
+  previewText?: string;
+}
+
+export type EmailTypeKey =
+  | 'confirmation'
+  | 'recurring_confirmation'
+  | 'cancellation'
+  | 'reschedule'
+  | 'change'
+  | 'invite'
+  | 'notification'
+  | 'admin_change_notification'
+  | 'admin_daily_summary';
+
+export interface AllEmailTemplates {
+  confirmation: EmailTemplate | null;
+  recurring_confirmation: EmailTemplate | null;
+  cancellation: EmailTemplate | null;
+  reschedule: EmailTemplate | null;
+  change: EmailTemplate | null;
+  invite: EmailTemplate | null;
+  notification: EmailTemplate | null;
+  admin_change_notification: EmailTemplate | null;
+  admin_daily_summary: EmailTemplate | null;
+}
+
 export interface AdminSettings {
   id: string;
   user_id: string;
@@ -62,6 +186,7 @@ export interface AdminSettings {
   email_change_elements: EmailElements | null;
   email_admin_change_enabled: boolean;
   email_admin_change_template: string | null;
+  email_templates_json: AllEmailTemplates | null;
   slot_increment_minutes: number;
   created_at: string;
   updated_at: string;
