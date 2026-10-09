@@ -177,10 +177,11 @@ function getComponentExcerpt(component: EmailComponent): string {
 interface EmailEditorProps {
   templates: AllEmailTemplates;
   onChange: (newTemplates: AllEmailTemplates) => void;
+  selectedKey: EmailTypeKey;
+  onSelectedKeyChange: (key: EmailTypeKey) => void;
 }
 
-export default function EmailEditor({ templates, onChange }: EmailEditorProps) {
-  const [selectedKey, setSelectedKey] = useState<EmailTypeKey>('confirmation');
+export default function EmailEditor({ templates, onChange, selectedKey, onSelectedKeyChange }: EmailEditorProps) {
   const [editingComponent, setEditingComponent] = useState<EmailComponent | null>(null);
 
   const selectedTemplate = templates[selectedKey]!;
@@ -251,7 +252,7 @@ export default function EmailEditor({ templates, onChange }: EmailEditorProps) {
       <Select
         label="Email Type"
         value={selectedKey}
-        onChange={(e) => setSelectedKey(e.target.value as EmailTypeKey)}
+        onChange={(e) => onSelectedKeyChange(e.target.value as EmailTypeKey)}
         options={EMAIL_TYPE_OPTIONS}
       />
 

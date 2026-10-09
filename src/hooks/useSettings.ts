@@ -125,6 +125,7 @@ export function useSettings(userId?: string) {
       email_reschedule_template: null,
       email_recurring_confirmation_template: null,
       email_change_template: null,
+      email_templates_json: null,
       email_from_name: '',
       email_from_address: '',
       zoom_enabled: false,
