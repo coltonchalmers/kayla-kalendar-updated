@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { AdminSettings } from '@/lib/types';
+import { mergeEmailTemplates } from '@/lib/emailDefaults';
 
 export function useSettings(userId?: string) {
   const [settings, setSettings] = useState<AdminSettings | null>(null);
@@ -15,8 +16,10 @@ export function useSettings(userId?: string) {
 
     if (error) {
       console.error('Error fetching settings:', error);
+    } else if (data) {
+      setSettings({ ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) });
     } else {
-      setSettings(data);
+      setSettings(null);
     }
     setLoading(false);
   }, []);
@@ -35,8 +38,9 @@ export function useSettings(userId?: string) {
       .maybeSingle();
 
     if (existing) {
-      setSettings(existing);
-      return existing;
+      const merged = { ...existing, email_templates_json: mergeEmailTemplates(existing.email_templates_json) };
+      setSettings(merged);
+      return merged;
     }
 
     const { data: created, error } = await supabase
@@ -50,8 +54,9 @@ export function useSettings(userId?: string) {
       return null;
     }
 
-    setSettings(created);
-    return created;
+    const mergedCreated = { ...created, email_templates_json: mergeEmailTemplates(created.email_templates_json) };
+    setSettings(mergedCreated);
+    return mergedCreated;
   }, [settings]);
 
   const updateSettings = useCallback(async (updates: Partial<AdminSettings>) => {
@@ -69,8 +74,9 @@ export function useSettings(userId?: string) {
       throw error;
     }
 
-    setSettings(data);
-    return data;
+    const mergedData = { ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) };
+    setSettings(mergedData);
+    return mergedData;
   }, [settings]);
 
   const resetSettings = useCallback(async () => {
@@ -140,8 +146,9 @@ export function useSettings(userId?: string) {
       throw error;
     }
 
-    setSettings(data);
-    return data;
+    const mergedReset = { ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) };
+    setSettings(mergedReset);
+    return mergedReset;
   }, [settings]);
 
   return { settings, loading, fetchSettings, ensureSettings, updateSettings, resetSettings };
