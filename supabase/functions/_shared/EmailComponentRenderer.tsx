@@ -76,19 +76,22 @@ function renderHeading(props: HeadingProps, data: Record<string, any>) {
   const align = props.textAlign ?? 'left';
 
   return (
-    <Heading
-      as={level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3'}
-      style={{
-        color: '#6A4E3E',
-        fontSize,
-        fontWeight: 700,
-        textAlign: align,
-        margin: '0 0 16px 0',
-        lineHeight: '1.2',
-      }}
-    >
-      {content}
-    </Heading>
+    <>
+      <Heading
+        as={level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3'}
+        style={{
+          color: '#6A4E3E',
+          fontSize,
+          fontWeight: 700,
+          textAlign: align,
+          margin: '0',
+          lineHeight: '1.2',
+        }}
+      >
+        {content}
+      </Heading>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+    </>
   );
 }
 
@@ -97,17 +100,20 @@ function renderText(props: TextProps, data: Record<string, any>) {
   const align = props.textAlign ?? 'left';
 
   return (
-    <Text
-      style={{
-        color: '#1F2937',
-        fontSize: '15px',
-        lineHeight: '1.6',
-        textAlign: align,
-        margin: '0 0 16px 0',
-      }}
-    >
-      {content}
-    </Text>
+    <>
+      <Text
+        style={{
+          color: '#1F2937',
+          fontSize: '15px',
+          lineHeight: '1.6',
+          textAlign: align,
+          margin: '0',
+        }}
+      >
+        {content}
+      </Text>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+    </>
   );
 }
 
@@ -119,23 +125,26 @@ function renderButton(props: ButtonProps, data: Record<string, any>) {
   const align = props.textAlign ?? 'left';
 
   return (
-    <Section style={{ textAlign: align, margin: '16px 0' }}>
-      <Button
-        href={href}
-        style={{
-          backgroundColor: bgColor,
-          color: txtColor,
-          display: 'inline-block',
-          padding: '12px 24px',
-          borderRadius: '6px',
-          fontSize: '15px',
-          fontWeight: 600,
-          textDecoration: 'none',
-        }}
-      >
-        {text}
-      </Button>
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section style={{ textAlign: align }}>
+        <Button
+          href={href}
+          style={{
+            backgroundColor: bgColor,
+            color: txtColor,
+            padding: '12px 24px',
+            borderRadius: '6px',
+            fontSize: '15px',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          {text}
+        </Button>
+      </Section>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+    </>
   );
 }
 
@@ -144,13 +153,17 @@ function renderDivider(props: DividerProps) {
   const padding = props.padding ?? 16;
 
   return (
-    <Hr
-      style={{
-        borderColor: color,
-        borderTopWidth: '1px',
-        margin: `${padding}px 0`,
-      }}
-    />
+    <>
+      <Section style={{ height: `${padding}px`, lineHeight: `${padding}px` }} />
+      <Hr
+        style={{
+          borderColor: color,
+          borderTopWidth: '1px',
+          margin: '0',
+        }}
+      />
+      <Section style={{ height: `${padding}px`, lineHeight: `${padding}px` }} />
+    </>
   );
 }
 
@@ -164,32 +177,34 @@ function renderZoom(data: Record<string, any>) {
   if (!data.zoom_link) return null;
 
   return (
-    <Section
-      style={{
-        marginTop: '20px',
-        padding: '16px',
-        backgroundColor: '#F0FDF4',
-        border: '1px solid #BBF7D0',
-        borderRadius: '8px',
-      }}
-    >
-      <Text style={{ margin: 0, fontWeight: 600, color: '#166534', fontSize: '15px' }}>
-        Zoom Meeting
-      </Text>
-      <Text style={{ margin: '8px 0 0 0' }}>
-        <Link
-          href={data.zoom_link}
-          style={{ color: '#047857', wordBreak: 'break-all', fontSize: '14px' }}
-        >
-          {data.zoom_link}
-        </Link>
-      </Text>
-      {data.zoom_passcode && (
-        <Text style={{ margin: '4px 0 0 0', color: '#166534', fontSize: '14px' }}>
-          Passcode: {data.zoom_passcode}
+    <>
+      <Section style={{ height: '20px', lineHeight: '20px' }} />
+      <Section
+        style={{
+          padding: '16px',
+          backgroundColor: '#F0FDF4',
+          border: '1px solid #BBF7D0',
+          borderRadius: '8px',
+        }}
+      >
+        <Text style={{ margin: 0, fontWeight: 600, color: '#166534', fontSize: '15px' }}>
+          Zoom Meeting
         </Text>
-      )}
-    </Section>
+        <Text style={{ margin: '8px 0 0 0' }}>
+          <Link
+            href={data.zoom_link}
+            style={{ color: '#047857', wordBreak: 'break-all', fontSize: '14px' }}
+          >
+            {data.zoom_link}
+          </Link>
+        </Text>
+        {data.zoom_passcode && (
+          <Text style={{ margin: '4px 0 0 0', color: '#166534', fontSize: '14px' }}>
+            Passcode: {data.zoom_passcode}
+          </Text>
+        )}
+      </Section>
+    </>
   );
 }
 
@@ -197,22 +212,24 @@ function renderPhoneContact(data: Record<string, any>) {
   if (!data.business_contact_phone) return null;
 
   return (
-    <Section
-      style={{
-        marginTop: '12px',
-        padding: '12px',
-        backgroundColor: '#F8FAFC',
-        border: '1px solid #E2E8F0',
-        borderRadius: '8px',
-      }}
-    >
-      <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
-        Phone
-      </Text>
-      <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
-        {data.business_contact_phone}
-      </Text>
-    </Section>
+    <>
+      <Section style={{ height: '12px', lineHeight: '12px' }} />
+      <Section
+        style={{
+          padding: '12px',
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: '8px',
+        }}
+      >
+        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
+          Phone
+        </Text>
+        <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+          {data.business_contact_phone}
+        </Text>
+      </Section>
+    </>
   );
 }
 
@@ -220,23 +237,25 @@ function renderGoogleCalendar(data: Record<string, any>) {
   if (!data.google_calendar_url) return null;
 
   return (
-    <Section style={{ marginTop: '12px' }}>
-      <Button
-        href={data.google_calendar_url}
-        style={{
-          display: 'inline-block',
-          padding: '8px 16px',
-          backgroundColor: '#1A73E8',
-          color: '#FFFFFF',
-          textDecoration: 'none',
-          borderRadius: '6px',
-          fontSize: '14px',
-          fontWeight: 500,
-        }}
-      >
-        Add to Google Calendar
-      </Button>
-    </Section>
+    <>
+      <Section style={{ height: '12px', lineHeight: '12px' }} />
+      <Section style={{ textAlign: 'left' }}>
+        <Button
+          href={data.google_calendar_url}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#1A73E8',
+            color: '#FFFFFF',
+            textDecoration: 'none',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: 500,
+          }}
+        >
+          Add to Google Calendar
+        </Button>
+      </Section>
+    </>
   );
 }
 
@@ -245,22 +264,24 @@ function renderNotesToClient(props: NotesToClientProps, data: Record<string, any
   const label = props.label ?? 'Notes';
 
   return (
-    <Section
-      style={{
-        marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#F9FAFB',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-      }}
-    >
-      <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
-        {label}
-      </Text>
-      <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
-        {data.notes_to_client}
-      </Text>
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section
+        style={{
+          padding: '12px',
+          backgroundColor: '#F9FAFB',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+        }}
+      >
+        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
+          {label}
+        </Text>
+        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+          {data.notes_to_client}
+        </Text>
+      </Section>
+    </>
   );
 }
 
@@ -269,22 +290,24 @@ function renderClientNotes(props: ClientNotesProps, data: Record<string, any>) {
   const label = props.label ?? 'Client Notes';
 
   return (
-    <Section
-      style={{
-        marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#F9FAFB',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-      }}
-    >
-      <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
-        {label}
-      </Text>
-      <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
-        {data.client_notes}
-      </Text>
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section
+        style={{
+          padding: '12px',
+          backgroundColor: '#F9FAFB',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+        }}
+      >
+        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
+          {label}
+        </Text>
+        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+          {data.client_notes}
+        </Text>
+      </Section>
+    </>
   );
 }
 
@@ -294,23 +317,25 @@ function renderManageBookingLink(props: ManageBookingLinkProps, data: Record<str
   const bgColor = props.buttonColor ?? '#059669';
 
   return (
-    <Section style={{ marginTop: '16px', textAlign: 'center' }}>
-      <Button
-        href={data.booking_link}
-        style={{
-          display: 'inline-block',
-          padding: '12px 24px',
-          backgroundColor: bgColor,
-          color: '#FFFFFF',
-          textDecoration: 'none',
-          borderRadius: '6px',
-          fontSize: '15px',
-          fontWeight: 600,
-        }}
-      >
-        {text}
-      </Button>
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section style={{ textAlign: 'center' }}>
+        <Button
+          href={data.booking_link}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: bgColor,
+            color: '#FFFFFF',
+            textDecoration: 'none',
+            borderRadius: '6px',
+            fontSize: '15px',
+            fontWeight: 600,
+          }}
+        >
+          {text}
+        </Button>
+      </Section>
+    </>
   );
 }
 
@@ -318,21 +343,29 @@ function renderFooter(data: Record<string, any>) {
   if (!data.business_name) return null;
 
   return (
-    <Section style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
-      <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
-        {data.business_name}
-      </Text>
-      {data.business_contact_email && (
-        <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
-          {data.business_contact_email}
+    <>
+      <Section style={{ height: '24px', lineHeight: '24px' }} />
+      <Section
+        style={{
+          paddingTop: '16px',
+          borderTop: '1px solid #E5E7EB',
+        }}
+      >
+        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
+          {data.business_name}
         </Text>
-      )}
-      {data.business_contact_phone && (
-        <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
-          {data.business_contact_phone}
-        </Text>
-      )}
-    </Section>
+        {data.business_contact_email && (
+          <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+            {data.business_contact_email}
+          </Text>
+        )}
+        {data.business_contact_phone && (
+          <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+            {data.business_contact_phone}
+          </Text>
+        )}
+      </Section>
+    </>
   );
 }
 
@@ -365,45 +398,48 @@ function renderSessionList(data: Record<string, any>) {
   });
 
   return (
-    <Section style={{ marginTop: '16px' }}>
-      <Text style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#6A4E3E', fontSize: '16px' }}>
-        Scheduled Sessions
-      </Text>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          {formattedSessions.map((s, i) => (
-            <tr
-              key={i}
-              style={{
-                backgroundColor: i % 2 === 0 ? '#F9FAFB' : '#FFFFFF',
-              }}
-            >
-              <td
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section>
+        <Text style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#6A4E3E', fontSize: '16px' }}>
+          Scheduled Sessions
+        </Text>
+        <table cellPadding={0} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            {formattedSessions.map((s, i) => (
+              <tr
+                key={i}
                 style={{
-                  padding: '8px 12px',
-                  color: '#6B7280',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  width: '32px',
-                  verticalAlign: 'top',
+                  backgroundColor: i % 2 === 0 ? '#F9FAFB' : '#FFFFFF',
                 }}
               >
-                {i + 1}.
-              </td>
-              <td
-                style={{
-                  padding: '8px 12px',
-                  color: '#1F2937',
-                  fontSize: '14px',
-                }}
-              >
-                {s.date} at {s.time}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Section>
+                <td
+                  style={{
+                    padding: '8px 12px',
+                    color: '#6B7280',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    width: '32px',
+                    verticalAlign: 'top',
+                  }}
+                >
+                  {i + 1}.
+                </td>
+                <td
+                  style={{
+                    padding: '8px 12px',
+                    color: '#1F2937',
+                    fontSize: '14px',
+                  }}
+                >
+                  {s.date} at {s.time}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+    </>
   );
 }
 
@@ -439,45 +475,47 @@ function renderRescheduleDetails(data: Record<string, any>) {
     : '';
 
   return (
-    <Section
-      style={{
-        marginTop: '16px',
-        padding: '16px',
-        backgroundColor: '#F9FAFB',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-      }}
-    >
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          <tr>
-            <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-              <Text style={{ margin: 0, color: '#6B7280', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
-                Previous
-              </Text>
-              <Text
-                style={{
-                  margin: '4px 0 0 0',
-                  color: '#6B7280',
-                  fontSize: '15px',
-                  textDecoration: 'line-through',
-                }}
-              >
-                {oldDisplay}
-              </Text>
-            </td>
-            <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-              <Text style={{ margin: 0, color: '#047857', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
-                New
-              </Text>
-              <Text style={{ margin: '4px 0 0 0', color: '#047857', fontSize: '15px', fontWeight: 600 }}>
-                {newDisplay}
-              </Text>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section
+        style={{
+          padding: '16px',
+          backgroundColor: '#F9FAFB',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+        }}
+      >
+        <table cellPadding={0} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
+                <Text style={{ margin: 0, color: '#6B7280', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Previous
+                </Text>
+                <Text
+                  style={{
+                    margin: '4px 0 0 0',
+                    color: '#6B7280',
+                    fontSize: '15px',
+                    textDecoration: 'line-through',
+                  }}
+                >
+                  {oldDisplay}
+                </Text>
+              </td>
+              <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
+                <Text style={{ margin: 0, color: '#047857', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                  New
+                </Text>
+                <Text style={{ margin: '4px 0 0 0', color: '#047857', fontSize: '15px', fontWeight: 600 }}>
+                  {newDisplay}
+                </Text>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Section>
+    </>
   );
 }
 
@@ -489,33 +527,35 @@ function renderChangeDetails(data: Record<string, any>) {
     : '';
 
   return (
-    <Section
-      style={{
-        marginTop: '16px',
-        padding: '16px',
-        backgroundColor: '#F9FAFB',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-      }}
-    >
-      {typeLabel && (
-        <Text style={{ margin: 0, fontWeight: 700, color: '#374151', fontSize: '16px' }}>
-          {typeLabel}
-        </Text>
-      )}
-      {data.change_details && (
-        <Text
-          style={{
-            margin: typeLabel ? '8px 0 0 0' : '0',
-            color: '#4B5563',
-            fontSize: '14px',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {data.change_details}
-        </Text>
-      )}
-    </Section>
+    <>
+      <Section style={{ height: '16px', lineHeight: '16px' }} />
+      <Section
+        style={{
+          padding: '16px',
+          backgroundColor: '#F9FAFB',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+        }}
+      >
+        {typeLabel && (
+          <Text style={{ margin: 0, fontWeight: 700, color: '#374151', fontSize: '16px' }}>
+            {typeLabel}
+          </Text>
+        )}
+        {data.change_details && (
+          <Text
+            style={{
+              margin: typeLabel ? '8px 0 0 0' : '0',
+              color: '#4B5563',
+              fontSize: '14px',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {data.change_details}
+          </Text>
+        )}
+      </Section>
+    </>
   );
 }
