@@ -15,7 +15,17 @@ export type EmailComponentType =
   | 'row'
   | 'column'
   | 'link'
-  | 'html';
+  | 'html'
+  | 'zoom'
+  | 'phoneContact'
+  | 'googleCalendar'
+  | 'notesToClient'
+  | 'clientNotes'
+  | 'manageBookingLink'
+  | 'footer'
+  | 'sessionList'
+  | 'rescheduleDetails'
+  | 'changeDetails';
 
 export type TextAlign = 'left' | 'center' | 'right';
 
@@ -80,6 +90,50 @@ export interface HtmlProps {
   content: string;
 }
 
+export interface ZoomProps {
+  type: 'zoom';
+}
+
+export interface PhoneContactProps {
+  type: 'phoneContact';
+}
+
+export interface GoogleCalendarProps {
+  type: 'googleCalendar';
+}
+
+export interface NotesToClientProps {
+  type: 'notesToClient';
+  label?: string;
+}
+
+export interface ClientNotesProps {
+  type: 'clientNotes';
+  label?: string;
+}
+
+export interface ManageBookingLinkProps {
+  type: 'manageBookingLink';
+  text?: string;
+  buttonColor?: string;
+}
+
+export interface FooterProps {
+  type: 'footer';
+}
+
+export interface SessionListProps {
+  type: 'sessionList';
+}
+
+export interface RescheduleDetailsProps {
+  type: 'rescheduleDetails';
+}
+
+export interface ChangeDetailsProps {
+  type: 'changeDetails';
+}
+
 export type EmailComponentProps =
   | HeadingProps
   | TextProps
@@ -90,7 +144,17 @@ export type EmailComponentProps =
   | RowProps
   | ColumnProps
   | LinkProps
-  | HtmlProps;
+  | HtmlProps
+  | ZoomProps
+  | PhoneContactProps
+  | GoogleCalendarProps
+  | NotesToClientProps
+  | ClientNotesProps
+  | ManageBookingLinkProps
+  | FooterProps
+  | SessionListProps
+  | RescheduleDetailsProps
+  | ChangeDetailsProps;
 
 export interface EmailComponent {
   id: string;
