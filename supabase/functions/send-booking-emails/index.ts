@@ -590,7 +590,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://etqmkgomwbfxdwjoqjei.supabase.co";
+    const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://kayla-kalendar.jungosolutions.com";
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

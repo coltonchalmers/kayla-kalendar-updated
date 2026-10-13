@@ -30,6 +30,7 @@ interface AdminSettings {
   } | null;
   booking_lead_hours: number;
   timezone: string;
+  site_url: string | null;
 }
 
 interface Booking {
@@ -264,8 +265,8 @@ Deno.serve(async (req: Request) => {
 
     let reqBody: { siteUrl?: string } = {};
     try { reqBody = await req.json(); } catch { /* empty body is fine */ }
-    const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://etqmkgomwbfxdwjoqjei.supabase.co";
-    const effectiveSiteUrl = reqBody.siteUrl || publicSiteUrl;
+    const fallbackSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://kayla-kalendar.jungosolutions.com";
+    const requestSiteUrl = reqBody.siteUrl || fallbackSiteUrl;
 
     // Fetch all admin settings rows (one per user)
     const { data: allSettings } = await supabase
@@ -360,7 +361,8 @@ Deno.serve(async (req: Request) => {
               }
               const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
 
-              const html = buildReminderHtml(textBody, bookingWithZoom, settings, effectiveSiteUrl, effectiveAdminPhone);
+              const userSiteUrl = settings.site_url || requestSiteUrl;
+              const html = buildReminderHtml(textBody, bookingWithZoom, settings, userSiteUrl, effectiveAdminPhone);
               const subject = `${TEST_SUBJECT_PREFIX}Reminder: Your meeting with ${settings.business_name}`;
 
               const sent = await sendEmail(resendApiKey, fromName, fromEmail, booking.client_email, subject, html);

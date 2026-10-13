@@ -199,7 +199,6 @@ export default function SettingsPage() {
   const [emailFromAddress, setEmailFromAddress] = useState('');
   const [zoomEnabled, setZoomEnabled] = useState(false);
   const [zoomDefaultLink, setZoomDefaultLink] = useState('');
-  const [siteUrl, setSiteUrl] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
   const [googleAutoSync, setGoogleAutoSync] = useState(false);
 
@@ -245,7 +244,6 @@ export default function SettingsPage() {
       setEmailFromAddress(settings.email_from_address || 'lindsey@jungosolutions.com');
       setZoomEnabled(settings.zoom_enabled ?? false);
       setZoomDefaultLink(settings.zoom_default_link || '');
-      setSiteUrl(settings.site_url || '');
       setTimezone(settings.timezone || 'America/New_York');
       setGoogleAutoSync(settings.google_calendar_auto_sync ?? false);
     }
@@ -297,7 +295,6 @@ export default function SettingsPage() {
         email_from_address: emailFromAddress.trim(),
         zoom_enabled: zoomEnabled,
         zoom_default_link: zoomDefaultLink.trim() || null,
-        site_url: siteUrl.trim() || null,
         timezone,
         google_calendar_auto_sync: googleAutoSync,
       });
@@ -438,14 +435,6 @@ export default function SettingsPage() {
               <Input label="Business Name" value={businessName} onChange={e => setBusinessName(e.target.value)} />
               <Input label="Contact Email" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="admin@jungosolutions.com" error={errors.contactEmail} />
               <Input label="Contact Phone" type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="(555) 123-4567" />
-              <Input
-                label="Public Site URL"
-                type="url"
-                value={siteUrl}
-                onChange={e => setSiteUrl(e.target.value)}
-                placeholder="https://your-app.bolt.host"
-                hint="The public address of your booking app. Used to build 'manage your booking' links in reminder emails sent by the automated scheduler. Booking emails triggered from the app detect this automatically."
-              />
               <Select
                 label="Your Timezone"
                 value={timezone}
