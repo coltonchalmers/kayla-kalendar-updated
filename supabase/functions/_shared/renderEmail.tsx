@@ -1,4 +1,4 @@
-import React from "npm:react@18.3.1";
+import React from "npm:react@19.1.0";
 import { render } from "npm:@react-email/render@1.1.2";
 import { EmailShell } from './EmailShell.tsx';
 import { EmailComponentRenderer, replacePlaceholders } from './EmailComponentRenderer.tsx';
