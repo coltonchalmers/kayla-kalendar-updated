@@ -52,6 +52,7 @@ const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
   { value: 'notification', label: 'Reminder Email' },
   { value: 'admin_change_notification', label: 'Admin Change Notification' },
   { value: 'admin_daily_summary', label: 'Admin Daily Summary' },
+  { value: 'admin_reminder', label: 'Admin Individual Reminder' },
 ];
 
 const COMPONENT_LABELS: Record<EmailComponentType, string> = {

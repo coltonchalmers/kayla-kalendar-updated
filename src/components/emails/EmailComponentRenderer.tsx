@@ -6,6 +6,7 @@ import {
   Section,
   Link,
 } from '@react-email/components';
+import React from 'react';
 import type {
   EmailComponent,
   HeadingProps,
@@ -25,6 +26,16 @@ export function replacePlaceholders(text: string, data: Record<string, any>): st
     if (value === undefined || value === null) return '';
     return String(value);
   });
+}
+
+function nlToBr(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  return lines.map((line, i) => (
+    <React.Fragment key={i}>
+      {i > 0 && <br />}
+      {line}
+    </React.Fragment>
+  ));
 }
 
 interface EmailComponentRendererProps {
@@ -110,7 +121,7 @@ function renderText(props: TextProps, data: Record<string, any>) {
           margin: '0',
         }}
       >
-        {content}
+        {nlToBr(content)}
       </Text>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
     </>
@@ -179,31 +190,30 @@ function renderZoom(data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '20px', lineHeight: '20px' }} />
-      <Section
-        style={{
-          padding: '16px',
-          backgroundColor: '#F0FDF4',
-          border: '1px solid #BBF7D0',
-          borderRadius: '8px',
-        }}
-      >
-        <Text style={{ margin: 0, fontWeight: 600, color: '#166534', fontSize: '15px' }}>
-          Zoom Meeting
-        </Text>
-        <Text style={{ margin: '8px 0 0 0' }}>
-          <Link
-            href={data.zoom_link}
-            style={{ color: '#047857', wordBreak: 'break-all', fontSize: '14px' }}
-          >
-            {data.zoom_link}
-          </Link>
-        </Text>
-        {data.zoom_passcode && (
-          <Text style={{ margin: '4px 0 0 0', color: '#166534', fontSize: '14px' }}>
-            Passcode: {data.zoom_passcode}
-          </Text>
-        )}
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '16px', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              <Text style={{ margin: 0, fontWeight: 600, color: '#166534', fontSize: '15px' }}>
+                Zoom Meeting
+              </Text>
+              <Text style={{ margin: '8px 0 0 0' }}>
+                <Link
+                  href={data.zoom_link}
+                  style={{ color: '#047857', wordBreak: 'break-all', fontSize: '14px' }}
+                >
+                  {data.zoom_link}
+                </Link>
+              </Text>
+              {data.zoom_passcode && (
+                <Text style={{ margin: '4px 0 0 0', color: '#166534', fontSize: '14px' }}>
+                  Passcode: {data.zoom_passcode}
+                </Text>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -214,21 +224,20 @@ function renderPhoneContact(data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '12px', lineHeight: '12px' }} />
-      <Section
-        style={{
-          padding: '12px',
-          backgroundColor: '#F8FAFC',
-          border: '1px solid #E2E8F0',
-          borderRadius: '8px',
-        }}
-      >
-        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
-          Phone
-        </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
-          {data.business_contact_phone}
-        </Text>
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
+                Phone
+              </Text>
+              <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+                {data.business_contact_phone}
+              </Text>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -266,21 +275,20 @@ function renderNotesToClient(props: NotesToClientProps, data: Record<string, any
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <Section
-        style={{
-          padding: '12px',
-          backgroundColor: '#F9FAFB',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
-        }}
-      >
-        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
-          {label}
-        </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
-          {data.notes_to_client}
-        </Text>
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '12px', backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
+                {label}
+              </Text>
+              <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+                {nlToBr(data.notes_to_client)}
+              </Text>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -292,21 +300,20 @@ function renderClientNotes(props: ClientNotesProps, data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <Section
-        style={{
-          padding: '12px',
-          backgroundColor: '#F9FAFB',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
-        }}
-      >
-        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
-          {label}
-        </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
-          {data.client_notes}
-        </Text>
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '12px', backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '14px' }}>
+                {label}
+              </Text>
+              <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+                {nlToBr(data.client_notes)}
+              </Text>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -404,7 +411,7 @@ function renderSessionList(data: Record<string, any>) {
         <Text style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#6A4E3E', fontSize: '16px' }}>
           Scheduled Sessions
         </Text>
-        <table cellPadding={0} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             {formattedSessions.map((s, i) => (
               <tr
@@ -477,44 +484,43 @@ function renderRescheduleDetails(data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <Section
-        style={{
-          padding: '16px',
-          backgroundColor: '#F9FAFB',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
-        }}
-      >
-        <table cellPadding={0} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <tbody>
-            <tr>
-              <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-                <Text style={{ margin: 0, color: '#6B7280', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Previous
-                </Text>
-                <Text
-                  style={{
-                    margin: '4px 0 0 0',
-                    color: '#6B7280',
-                    fontSize: '15px',
-                    textDecoration: 'line-through',
-                  }}
-                >
-                  {oldDisplay}
-                </Text>
-              </td>
-              <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-                <Text style={{ margin: 0, color: '#047857', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
-                  New
-                </Text>
-                <Text style={{ margin: '4px 0 0 0', color: '#047857', fontSize: '15px', fontWeight: 600 }}>
-                  {newDisplay}
-                </Text>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '16px', backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
+                      <Text style={{ margin: 0, color: '#6B7280', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                        Previous
+                      </Text>
+                      <Text
+                        style={{
+                          margin: '4px 0 0 0',
+                          color: '#6B7280',
+                          fontSize: '15px',
+                          textDecoration: 'line-through',
+                        }}
+                      >
+                        {oldDisplay}
+                      </Text>
+                    </td>
+                    <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
+                      <Text style={{ margin: 0, color: '#047857', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                        New
+                      </Text>
+                      <Text style={{ margin: '4px 0 0 0', color: '#047857', fontSize: '15px', fontWeight: 600 }}>
+                        {newDisplay}
+                      </Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -529,33 +535,31 @@ function renderChangeDetails(data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <Section
-        style={{
-          padding: '16px',
-          backgroundColor: '#F9FAFB',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
-        }}
-      >
-        {typeLabel && (
-          <Text style={{ margin: 0, fontWeight: 700, color: '#374151', fontSize: '16px' }}>
-            {typeLabel}
-          </Text>
-        )}
-        {data.change_details && (
-          <Text
-            style={{
-              margin: typeLabel ? '8px 0 0 0' : '0',
-              color: '#4B5563',
-              fontSize: '14px',
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {data.change_details}
-          </Text>
-        )}
-      </Section>
+      <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', padding: '16px', backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '0' }}>
+              {typeLabel && (
+                <Text style={{ margin: 0, fontWeight: 700, color: '#374151', fontSize: '16px' }}>
+                  {typeLabel}
+                </Text>
+              )}
+              {data.change_details && (
+                <Text
+                  style={{
+                    margin: typeLabel ? '8px 0 0 0' : '0',
+                    color: '#4B5563',
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                  }}
+                >
+                  {nlToBr(data.change_details)}
+                </Text>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </>
   );
 }

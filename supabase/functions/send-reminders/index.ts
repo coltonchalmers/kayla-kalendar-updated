@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { renderEmailWithFallback, mergeTemplates } from "../_shared/renderEmail.tsx";
+import type { AllEmailTemplates } from "../_shared/emailTypes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +33,8 @@ interface AdminSettings {
   booking_lead_hours: number;
   timezone: string;
   site_url: string | null;
+  email_templates_json: AllEmailTemplates | null;
+  zoom_default_link: string | null;
 }
 
 interface Booking {
@@ -51,6 +55,8 @@ interface Booking {
   meeting_type_id: string | null;
   client_timezone: string | null;
   meeting_location_type: string | null;
+  notes_to_client: string | null;
+  client_notes: string | null;
 }
 
 interface MeetingType {
@@ -88,6 +94,16 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 }
 
 const TEST_SUBJECT_PREFIX = "[TEST] ";
+
+const DEFAULT_REMINDER_TEMPLATE = `Hi {{client_name}},
+
+This is a reminder for your upcoming meeting with {{business_name}}.
+
+Date: {{date}}
+Time: {{time}}
+Duration: {{duration}} minutes
+
+See you soon!`;
 
 function getTzOffsetMs(date: Date, tz: string): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
@@ -157,16 +173,6 @@ function getTodayInTz(tz: string): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: tz });
 }
 
-const DEFAULT_REMINDER_TEMPLATE = `Hi {{client_name}},
-
-This is a reminder for your upcoming meeting with {{business_name}}.
-
-Date: {{date}}
-Time: {{time}}
-Duration: {{duration}} minutes
-
-See you soon!`;
-
 async function sendEmail(
   resendApiKey: string,
   fromName: string,
@@ -225,7 +231,7 @@ function buildReminderHtml(textBody: string, booking: Booking, settings: AdminSe
 
   if (booking.booking_token) {
     const manageLink = `${siteUrl}/manage/${booking.booking_token}?action=reschedule`;
-    const leadHours = (settings as Record<string, unknown>).booking_lead_hours as number ?? 2;
+    const leadHours = settings.booking_lead_hours ?? 2;
     sections.push(`<div style="margin-top:20px;">
       <p style="margin:0;color:#6b7280;font-size:14px;">Need to cancel or reschedule?</p>
       <p style="margin:4px 0 0 0;"><a href="${manageLink}" style="color:#15803d;">Manage your booking here</a></p>
@@ -242,6 +248,73 @@ function buildReminderHtml(textBody: string, booking: Booking, settings: AdminSe
   }
 
   return `<div style="max-width:600px;margin:0 auto;padding:24px;">${sections.join("")}</div>`;
+}
+
+function buildAdminReminderHtml(booking: Booking, settings: AdminSettings): string {
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
+    <h2 style="color:#1f2937;">Upcoming Meeting Reminder</h2>
+    <p>You have an upcoming meeting:</p>
+    <div style="padding:16px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0;"><strong>${booking.first_name} ${booking.last_name}</strong></p>
+      <p style="margin:4px 0 0 0;">${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)}</p>
+      <p style="margin:4px 0 0 0;">Duration: ${booking.duration_minutes} minutes</p>
+      <p style="margin:4px 0 0 0;">Email: ${booking.client_email}</p>
+    </div>
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
+    </div>
+  </div>`;
+}
+
+function buildDailySummaryHtml(bookings: Booking[], settings: AdminSettings, targetDate: string): string {
+  const summaryLines = bookings.map(b =>
+    `${b.first_name} ${b.last_name} - ${formatDisplayDate(b.date)} at ${formatTime(b.start_time)} (${b.duration_minutes} min)`
+  ).join("\n");
+
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
+    <h2 style="color:#1f2937;">Daily Meeting Summary - ${formatDisplayDate(targetDate)}</h2>
+    <p>You have ${bookings.length} meeting${bookings.length !== 1 ? "s" : ""} scheduled:</p>
+    <div style="white-space:pre-wrap;padding:16px;background:#f9fafb;border-radius:8px;">${summaryLines}</div>
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
+    </div>
+  </div>`;
+}
+
+function buildEmailData(
+  booking: Booking,
+  settings: AdminSettings,
+  siteUrl: string,
+  effectiveZoomLink: string | null,
+  effectiveAdminPhone?: string,
+  extra: Record<string, any> = {},
+): Record<string, any> {
+  const adminTz = settings.timezone || "America/New_York";
+  const displayTz = booking.client_timezone && booking.client_timezone !== adminTz
+    ? booking.client_timezone
+    : adminTz;
+  const dateDisplay = booking.date ? formatBookingDate(booking, adminTz) : "";
+  const timeDisplay = booking.start_time ? formatBookingTime(booking, adminTz) : "";
+  const manageLink = booking.booking_token ? `${siteUrl}/manage/${booking.booking_token}?action=reschedule` : "";
+
+  return {
+    client_name: `${booking.first_name} ${booking.last_name}`,
+    business_name: settings.business_name,
+    date: dateDisplay,
+    time: timeDisplay,
+    duration: booking.duration_minutes.toString(),
+    zoom_link: effectiveZoomLink || "",
+    zoom_passcode: booking.zoom_passcode || "",
+    booking_link: manageLink,
+    notes_to_client: booking.notes_to_client || "",
+    client_notes: booking.client_notes || "",
+    business_contact_email: settings.contact_email || "",
+    business_contact_phone: effectiveAdminPhone || settings.contact_phone || "",
+    admin_timezone: adminTz,
+    client_timezone: displayTz,
+    client_email: booking.client_email || "",
+    ...extra,
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -268,7 +341,6 @@ Deno.serve(async (req: Request) => {
     const fallbackSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://kayla-kalendar.jungosolutions.com";
     const requestSiteUrl = reqBody.siteUrl || fallbackSiteUrl;
 
-    // Fetch all admin settings rows (one per user)
     const { data: allSettings } = await supabase
       .from("admin_settings")
       .select("*")
@@ -288,6 +360,8 @@ Deno.serve(async (req: Request) => {
       const fromEmail = settings.email_from_address || "noreply@jungosolutions.com";
       const adminTz = settings.timezone || "America/New_York";
       const today = getTodayInTz(adminTz);
+      const userSiteUrl = settings.site_url || requestSiteUrl;
+      const mergedTemplates = mergeTemplates(settings.email_templates_json);
 
       // --- Client reminders ---
       if (settings.email_notification_enabled) {
@@ -356,14 +430,22 @@ Deno.serve(async (req: Request) => {
                   .maybeSingle() as { data: MeetingType | null };
                 if (mt) {
                   effectiveAdminPhone = mt.contact_phone_override || undefined;
-                  effectiveZoomLink = booking.zoom_link || mt.zoom_link || undefined;
+                  effectiveZoomLink = booking.zoom_link || mt.zoom_link || settings.zoom_default_link || undefined;
                 }
               }
               const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
 
-              const userSiteUrl = settings.site_url || requestSiteUrl;
-              const html = buildReminderHtml(textBody, bookingWithZoom, settings, userSiteUrl, effectiveAdminPhone);
-              const subject = `${TEST_SUBJECT_PREFIX}Reminder: Your meeting with ${settings.business_name}`;
+              const reminderData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone);
+
+              const { html, subject } = await renderEmailWithFallback(
+                "notification",
+                reminderData,
+                mergedTemplates,
+                () => ({
+                  html: buildReminderHtml(textBody, bookingWithZoom, settings, userSiteUrl, effectiveAdminPhone),
+                  subject: `${TEST_SUBJECT_PREFIX}Reminder: Your meeting with ${settings.business_name}`,
+                }),
+              );
 
               const sent = await sendEmail(resendApiKey, fromName, fromEmail, booking.client_email, subject, html);
               if (sent) totalEmailsSent++;
@@ -412,20 +494,26 @@ Deno.serve(async (req: Request) => {
               }
 
               if (!existingLog) {
-                const summaryLines = todayBookings.map(b =>
-                  `• ${formatDisplayDate(b.date)} at ${formatTime(b.start_time)} — ${b.first_name} ${b.last_name} (${b.duration_minutes} min)`
-                ).join("\n");
+                const dailySummaryData: Record<string, any> = {
+                  business_name: settings.business_name,
+                  business_contact_email: settings.contact_email || "",
+                  business_contact_phone: settings.contact_phone || "",
+                  admin_timezone: adminTz,
+                  client_timezone: adminTz,
+                  session_list: todayBookings.map(b => ({ date: b.date, start_time: b.start_time })),
+                };
 
-                const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-                  <h2 style="color:#1f2937;">Daily Meeting Summary — ${formatDisplayDate(targetDate)}</h2>
-                  <p>You have ${todayBookings.length} meeting${todayBookings.length !== 1 ? "s" : ""} scheduled:</p>
-                  <div style="white-space:pre-wrap;padding:16px;background:#f9fafb;border-radius:8px;">${summaryLines}</div>
-                  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-                    <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-                  </div>
-                </div>`;
+                const { html, subject } = await renderEmailWithFallback(
+                  "admin_daily_summary",
+                  dailySummaryData,
+                  mergedTemplates,
+                  () => ({
+                    html: buildDailySummaryHtml(todayBookings, settings, targetDate),
+                    subject: `${TEST_SUBJECT_PREFIX}Daily Meeting Summary - ${formatDisplayDate(targetDate)}`,
+                  }),
+                );
 
-                const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, `${TEST_SUBJECT_PREFIX}Daily Meeting Summary — ${formatDisplayDate(targetDate)}`, html);
+                const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, subject, html);
                 if (sent) totalEmailsSent++;
 
                 await supabase.from("notification_log").insert({
@@ -470,21 +558,32 @@ Deno.serve(async (req: Request) => {
 
                   if (existingLog) continue;
 
-                  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-                    <h2 style="color:#1f2937;">Upcoming Meeting Reminder</h2>
-                    <p>You have an upcoming meeting:</p>
-                    <div style="padding:16px;background:#f9fafb;border-radius:8px;">
-                      <p style="margin:0;"><strong>${booking.first_name} ${booking.last_name}</strong></p>
-                      <p style="margin:4px 0 0 0;">${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)}</p>
-                      <p style="margin:4px 0 0 0;">Duration: ${booking.duration_minutes} minutes</p>
-                      <p style="margin:4px 0 0 0;">Email: ${booking.client_email}</p>
-                    </div>
-                    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-                      <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-                    </div>
-                  </div>`;
+                  const adminReminderData: Record<string, any> = {
+                    client_name: `${booking.first_name} ${booking.last_name}`,
+                    business_name: settings.business_name,
+                    business_contact_email: settings.contact_email || "",
+                    business_contact_phone: settings.contact_phone || "",
+                    admin_timezone: adminTz,
+                    client_timezone: adminTz,
+                    client_email: booking.client_email || "",
+                    date: formatDisplayDate(booking.date),
+                    time: formatTime(booking.start_time),
+                    duration: booking.duration_minutes.toString(),
+                    change_type: "upcoming",
+                    change_details: `Client: ${booking.first_name} ${booking.last_name}\nEmail: ${booking.client_email}\nDate: ${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)}\nDuration: ${booking.duration_minutes} minutes`,
+                  };
 
-                  const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, `${TEST_SUBJECT_PREFIX}Reminder: Meeting with ${booking.first_name} ${booking.last_name}`, html);
+                  const { html, subject } = await renderEmailWithFallback(
+                    "admin_reminder",
+                    adminReminderData,
+                    mergedTemplates,
+                    () => ({
+                      html: buildAdminReminderHtml(booking, settings),
+                      subject: `${TEST_SUBJECT_PREFIX}Reminder: Meeting with ${booking.first_name} ${booking.last_name}`,
+                    }),
+                  );
+
+                  const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, subject, html);
                   if (sent) totalEmailsSent++;
 
                   await supabase.from("notification_log").insert({

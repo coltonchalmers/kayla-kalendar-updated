@@ -172,7 +172,8 @@ export type EmailTypeKey =
   | 'invite'
   | 'notification'
   | 'admin_change_notification'
-  | 'admin_daily_summary';
+  | 'admin_daily_summary'
+  | 'admin_reminder';
 
 export interface AllEmailTemplates {
   confirmation: EmailTemplate | null;
@@ -184,6 +185,7 @@ export interface AllEmailTemplates {
   notification: EmailTemplate | null;
   admin_change_notification: EmailTemplate | null;
   admin_daily_summary: EmailTemplate | null;
+  admin_reminder: EmailTemplate | null;
 }
 
 export interface EmailElements {

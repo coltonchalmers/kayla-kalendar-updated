@@ -49,6 +49,7 @@ export function mapEmailTypeToTemplateKey(emailType: string): EmailTypeKey | nul
     reminder: 'notification',
     admin_change_notification: 'admin_change_notification',
     admin_daily_summary: 'admin_daily_summary',
+    admin_reminder: 'admin_reminder',
   };
   return map[emailType] ?? null;
 }
@@ -68,11 +69,12 @@ export async function renderEmailWithFallback(
   try {
     const template = getTemplate(templates, emailType);
     if (!template) {
+      console.warn(`[email-render] No template found for "${emailType}" in saved settings, using fallback.`);
       return fallback();
     }
     return await renderTemplateHtml(template, data, logoUrl);
   } catch (err) {
-    console.error(`[email-render] Failed to render template for "${emailType}", falling back to plain-text:`, err);
+    console.warn(`[email-render] Failed to render template for "${emailType}", falling back to plain-text HTML:`, err);
     return fallback();
   }
 }
