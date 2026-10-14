@@ -363,7 +363,12 @@ export default function SettingsPage() {
   const selectedTemplate = emailTemplatesJson[selectedEmailKey]!;
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-2xl">
+    <div
+      className={classNames(
+        'space-y-8 animate-fade-in',
+        activeTab === 'emails' ? 'max-w-none' : 'max-w-2xl',
+      )}
+    >
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
@@ -612,8 +617,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Editor + Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <Card className="min-w-0">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Editor</h2>
               <EmailEditor
                 templates={emailTemplatesJson}
@@ -622,7 +627,7 @@ export default function SettingsPage() {
                 onSelectedKeyChange={setSelectedEmailKey}
               />
             </Card>
-            <div className="lg:sticky lg:top-4 self-start">
+            <div className="min-w-0 lg:sticky lg:top-4 self-start">
               <EmailPreview template={selectedTemplate} />
             </div>
           </div>
