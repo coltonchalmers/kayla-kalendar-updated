@@ -6,73 +6,110 @@ export function useAvailability(userId?: string) {
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchRules = useCallback(async () => {
+  const fetchRules = useCallback(async (signal?: AbortSignal) => {
     let query = supabase
       .from('availability_rules')
       .select('*');
     if (userId) {
       query = query.eq('user_id', userId);
     }
-    const { data, error } = await query
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+    const { data, error: queryError } = await query
       .order('day_of_week')
       .order('start_time');
 
-    if (error) console.error('Error fetching rules:', error);
-    else setRules(data || []);
-  }, []);
+    if (queryError) {
+      if (signal?.aborted) return;
+      console.error('Error fetching rules:', queryError);
+      setError(queryError.message);
+    } else {
+      if (signal?.aborted) return;
+      setRules(data || []);
+    }
+  }, [userId]);
 
-  const fetchOverrides = useCallback(async () => {
+  const fetchOverrides = useCallback(async (signal?: AbortSignal) => {
     let query = supabase
       .from('availability_overrides')
       .select('*');
     if (userId) {
       query = query.eq('user_id', userId);
     }
-    const { data, error } = await query
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+    const { data, error: queryError } = await query
       .gte('date', new Date().toISOString().split('T')[0])
       .order('date');
 
-    if (error) console.error('Error fetching overrides:', error);
-    else setOverrides(data || []);
-  }, []);
+    if (queryError) {
+      if (signal?.aborted) return;
+      console.error('Error fetching overrides:', queryError);
+      setError(queryError.message);
+    } else {
+      if (signal?.aborted) return;
+      setOverrides(data || []);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    Promise.all([fetchRules(), fetchOverrides()]).then(() => setLoading(false));
+    const controller = new AbortController();
+    setError(null);
+    setLoading(true);
+
+    Promise.all([fetchRules(controller.signal), fetchOverrides(controller.signal)])
+      .then(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [fetchRules, fetchOverrides, userId]);
 
   const addRule = useCallback(async (rule: { day_of_week: number; start_time: string; end_time: string }) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('availability_rules')
       .insert(rule)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setRules(prev => [...prev, data]);
     return data;
   }, []);
 
   const updateRule = useCallback(async (id: string, updates: Partial<AvailabilityRule>) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('availability_rules')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setRules(prev => prev.map(r => r.id === id ? data : r));
     return data;
   }, []);
 
   const deleteRule = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error: mutationError } = await supabase
       .from('availability_rules')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setRules(prev => prev.filter(r => r.id !== id));
   }, []);
 
@@ -83,24 +120,24 @@ export function useAvailability(userId?: string) {
     end_time?: string;
     reason?: string;
   }) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('availability_overrides')
       .insert(override)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setOverrides(prev => [...prev, data]);
     return data;
   }, []);
 
   const deleteOverride = useCallback(async (id: string) => {
-    const { error } = await supabase
+    const { error: mutationError } = await supabase
       .from('availability_overrides')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setOverrides(prev => prev.filter(o => o.id !== id));
   }, []);
 
@@ -108,6 +145,7 @@ export function useAvailability(userId?: string) {
     rules,
     overrides,
     loading,
+    error,
     addRule,
     updateRule,
     deleteRule,

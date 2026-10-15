@@ -6,26 +6,52 @@ import { mergeEmailTemplates } from '@/lib/emailDefaults';
 export function useSettings(userId?: string) {
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (signal?: AbortSignal) => {
     let query = supabase.from('admin_settings').select('*');
     if (userId) {
       query = query.eq('user_id', userId);
     }
-    const { data, error } = await query.maybeSingle();
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+    const { data, error: queryError } = await query.maybeSingle();
 
-    if (error) {
-      console.error('Error fetching settings:', error);
+    if (signal?.aborted) return;
+
+    if (queryError) {
+      console.error('Error fetching settings:', queryError);
+      setError(queryError.message);
     } else if (data) {
       setSettings({ ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) });
+      setError(null);
     } else {
       setSettings(null);
+      setError(null);
     }
-    setLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    fetchSettings();
+    const controller = new AbortController();
+    setError(null);
+    setLoading(true);
+
+    fetchSettings(controller.signal)
+      .then(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [fetchSettings, userId]);
 
   const ensureSettings = useCallback(async (userId: string) => {
@@ -43,14 +69,14 @@ export function useSettings(userId?: string) {
       return merged;
     }
 
-    const { data: created, error } = await supabase
+    const { data: created, error: createError } = await supabase
       .from('admin_settings')
       .upsert({ user_id: userId })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating settings:', error);
+    if (createError) {
+      console.error('Error creating settings:', createError);
       return null;
     }
 
@@ -62,16 +88,16 @@ export function useSettings(userId?: string) {
   const updateSettings = useCallback(async (updates: Partial<AdminSettings>) => {
     if (!settings) return;
 
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('admin_settings')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', settings.id)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating settings:', error);
-      throw error;
+    if (mutationError) {
+      console.error('Error updating settings:', mutationError);
+      throw mutationError;
     }
 
     const mergedData = { ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) };
@@ -135,16 +161,16 @@ export function useSettings(userId?: string) {
       google_calendar_auto_sync: false,
     };
 
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('admin_settings')
       .update({ ...defaults, updated_at: new Date().toISOString() })
       .eq('id', settings.id)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error resetting settings:', error);
-      throw error;
+    if (mutationError) {
+      console.error('Error resetting settings:', mutationError);
+      throw mutationError;
     }
 
     const mergedReset = { ...data, email_templates_json: mergeEmailTemplates(data.email_templates_json) };
@@ -152,5 +178,5 @@ export function useSettings(userId?: string) {
     return mergedReset;
   }, [settings]);
 
-  return { settings, loading, fetchSettings, ensureSettings, updateSettings, resetSettings };
+  return { settings, loading, error, fetchSettings, ensureSettings, updateSettings, resetSettings };
 }

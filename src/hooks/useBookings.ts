@@ -37,6 +37,7 @@ export interface ConflictResult {
 export function useBookings(options?: { autoFetch?: boolean; userId?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBookings = useCallback(async (filters?: {
     status?: string;
@@ -45,7 +46,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     dateTo?: string;
     meetingTypeId?: string;
     isExistingClient?: boolean | null;
-  }) => {
+  }, signal?: AbortSignal) => {
     let query = supabase
       .from('bookings')
       .select('*')
@@ -78,19 +79,44 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       query = query.or('is_existing_client.is.false,is_existing_client.is.null');
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('Error fetching bookings:', error);
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+
+    const { data, error: queryError } = await query;
+    if (signal?.aborted) return [];
+
+    if (queryError) {
+      console.error('Error fetching bookings:', queryError);
+      setError(queryError.message);
     } else {
       setBookings(data || []);
+      setError(null);
     }
-    setLoading(false);
     return data || [];
-  }, []);
+  }, [options?.userId]);
 
   useEffect(() => {
     if (options?.autoFetch !== false) {
-      fetchBookings();
+      const controller = new AbortController();
+      setError(null);
+      setLoading(true);
+
+      fetchBookings(undefined, controller.signal)
+        .then(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+          }
+        });
+
+      return () => {
+        controller.abort();
+      };
     } else {
       setLoading(false);
     }
@@ -101,7 +127,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     const end_time = minutesToTime(endMinutes);
     const bookingToken = crypto.randomUUID();
 
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .insert({
         first_name: input.first_name,
@@ -130,21 +156,21 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => [...prev, data]);
     triggerGoogleCalendarSync(data.id);
     return data;
   }, []);
 
   const updateBookingStatus = useCallback(async (id: string, status: Booking['status']) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
     if (status === 'cancelled' || status === 'completed') {
@@ -158,14 +184,14 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
   }, []);
 
   const cancelBooking = useCallback(async (id: string, sendEmail: boolean = true) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
     await supabase.from('booking_changes').insert({
@@ -201,7 +227,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     const endMinutes = timeToMinutes(newStartTime) + durationMinutes;
     const newEndTime = minutesToTime(endMinutes);
 
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({
         date: newDate,
@@ -213,7 +239,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
     await supabase.from('booking_changes').insert({
@@ -291,8 +317,11 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       }
     }
 
+    // Re-fetch to ensure full list is in sync after bulk operation
+    await fetchBookings();
+
     return toCancel.length;
-  }, []);
+  }, [fetchBookings]);
 
   const rescheduleRecurringGroup = useCallback(async (groupId: string, shiftDays: number, sendEmails: boolean = true) => {
     const { data: groupBookings, error: fetchError } = await supabase
@@ -350,8 +379,11 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       return { ...b, date: newDate };
     }));
 
+    // Re-fetch to ensure full list is in sync after bulk operation
+    await fetchBookings();
+
     return toShift.length;
-  }, []);
+  }, [fetchBookings]);
 
   const checkMeetingTypeConflict = useCallback(async (
     bookingId: string,
@@ -360,14 +392,20 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     newDurationMinutes: number,
     bufferMinutes: number
   ): Promise<ConflictResult> => {
-    const { data: dayBookings, error } = await supabase
+    let query = supabase
       .from('bookings')
       .select('*')
       .eq('date', date)
       .neq('status', 'cancelled')
       .neq('id', bookingId);
 
-    if (error) throw error;
+    if (options?.userId) {
+      query = query.eq('user_id', options.userId);
+    }
+
+    const { data: dayBookings, error: queryError } = await query;
+
+    if (queryError) throw queryError;
 
     const newStart = timeToMinutes(startTime);
     const newEnd = newStart + newDurationMinutes;
@@ -386,7 +424,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     }
 
     return { hasConflict: false, hasBufferOverlap: false };
-  }, []);
+  }, [options?.userId]);
 
   const updateBookingMeetingType = useCallback(async (
     id: string,
@@ -415,7 +453,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     const endMinutes = timeToMinutes(booking.start_time) + newDurationMinutes;
     const newEndTime = minutesToTime(endMinutes);
 
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({
         meeting_type_id: meetingTypeId,
@@ -427,7 +465,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
     if (sendEmail) {
@@ -451,14 +489,14 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     },
     sendEmail: boolean = false
   ) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
     if (sendEmail) {
@@ -471,14 +509,14 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
   }, []);
 
   const fetchBookingByToken = useCallback(async (token: string) => {
-    const { data, error } = await supabase
+    const { data, error: queryError } = await supabase
       .from('bookings')
       .select('*')
       .eq('booking_token', token)
       .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching booking by token:', error);
+    if (queryError) {
+      console.error('Error fetching booking by token:', queryError);
       return null;
     }
     return data as Booking | null;
@@ -496,38 +534,38 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       query = query.eq('user_id', uid);
     }
 
-    const { data, error } = await query;
+    const { data, error: queryError } = await query;
 
-    if (error) {
-      console.error('Error fetching bookings for date:', error);
+    if (queryError) {
+      console.error('Error fetching bookings for date:', queryError);
       return [];
     }
     return data || [];
-  }, []);
+  }, [options?.userId]);
 
   const fetchRecurringGroup = useCallback(async (groupId: string) => {
-    const { data, error } = await supabase
+    const { data, error: queryError } = await supabase
       .from('bookings')
       .select('*')
       .eq('recurrence_group_id', groupId)
       .order('date', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching recurring group:', error);
+    if (queryError) {
+      console.error('Error fetching recurring group:', queryError);
       return [];
     }
     return data || [];
   }, []);
 
   const fetchBookingChanges = useCallback(async (bookingId: string) => {
-    const { data, error } = await supabase
+    const { data, error: queryError } = await supabase
       .from('booking_changes')
       .select('*')
       .eq('booking_id', bookingId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching booking changes:', error);
+    if (queryError) {
+      console.error('Error fetching booking changes:', queryError);
       return [];
     }
     return data || [];
@@ -537,14 +575,14 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     id: string,
     notes: { internal_notes?: string | null; notes_to_client?: string | null }
   ) => {
-    const { data, error } = await supabase
+    const { data, error: mutationError } = await supabase
       .from('bookings')
       .update({ ...notes, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
     return data;
   }, []);
@@ -585,6 +623,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
   return {
     bookings,
     loading,
+    error,
     fetchBookings,
     createBooking,
     updateBookingStatus,
