@@ -197,6 +197,30 @@ export const defaultEmailTemplates: AllEmailTemplates = {
       staticBlock('footer'),
     ],
   ),
+
+  admin_new_booking_notification: makeTemplate(
+    'New Booking Confirmed with {{client_name}}',
+    '{{client_name}} has booked a meeting with {{business_name}}.',
+    [
+      heading('New Booking Confirmed'),
+      text('A new meeting has been booked:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      spacer(8),
+      labeledBlock('clientNotes', 'Client Notes'),
+      divider(),
+      staticBlock('footer'),
+    ],
+  ),
+
+  admin_event_notification: makeTemplate(
+    'Upcoming Meeting with {{client_name}}',
+    'You have an upcoming meeting with {{client_name}}.',
+    [
+      heading('Upcoming Meeting Notification'),
+      text('You have an upcoming meeting:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      divider(),
+      staticBlock('footer'),
+    ],
+  ),
 };
 
 export function mergeEmailTemplates(

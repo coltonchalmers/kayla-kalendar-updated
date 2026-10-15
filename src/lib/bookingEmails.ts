@@ -8,6 +8,8 @@ type EmailType =
   | 'reschedule'
   | 'change'
   | 'admin_change_notification'
+  | 'admin_new_booking_notification'
+  | 'admin_event_notification'
   | 'sameday_alert'
   | 'recurring_confirmation'
   | 'reminder'

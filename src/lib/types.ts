@@ -180,7 +180,9 @@ export type EmailTypeKey =
   | 'notification'
   | 'admin_change_notification'
   | 'admin_daily_summary'
-  | 'admin_reminder';
+  | 'admin_reminder'
+  | 'admin_new_booking_notification'
+  | 'admin_event_notification';
 
 export interface AllEmailTemplates {
   confirmation: EmailTemplate | null;
@@ -193,6 +195,8 @@ export interface AllEmailTemplates {
   admin_change_notification: EmailTemplate | null;
   admin_daily_summary: EmailTemplate | null;
   admin_reminder: EmailTemplate | null;
+  admin_new_booking_notification: EmailTemplate | null;
+  admin_event_notification: EmailTemplate | null;
 }
 
 export interface AdminSettings {
@@ -252,6 +256,14 @@ export interface AdminSettings {
   email_change_elements: EmailElements | null;
   email_admin_change_enabled: boolean;
   email_admin_change_template: string | null;
+  email_admin_change_elements: EmailElements | null;
+  email_admin_new_booking_notification_enabled: boolean;
+  email_admin_new_booking_notification_template: string | null;
+  email_admin_new_booking_notification_elements: EmailElements | null;
+  email_admin_event_notification_enabled: boolean;
+  email_admin_event_notification_template: string | null;
+  email_admin_event_notification_elements: EmailElements | null;
+  email_admin_event_notification_lead_hours: number;
   email_templates_json: AllEmailTemplates | null;
   slot_increment_minutes: number;
   created_at: string;

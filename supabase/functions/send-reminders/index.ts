@@ -30,6 +30,15 @@ interface AdminSettings {
     phone: boolean;
     google_calendar: boolean;
   } | null;
+  email_admin_event_notification_enabled: boolean;
+  email_admin_event_notification_template: string | null;
+  email_admin_event_notification_elements: {
+    company_info: boolean;
+    zoom: boolean;
+    phone: boolean;
+    google_calendar: boolean;
+  } | null;
+  email_admin_event_notification_lead_hours: number;
   booking_lead_hours: number;
   timezone: string;
   site_url: string | null;

@@ -51,6 +51,8 @@ export function mapEmailTypeToTemplateKey(emailType: string): EmailTypeKey | nul
     admin_change_notification: 'admin_change_notification',
     admin_daily_summary: 'admin_daily_summary',
     admin_reminder: 'admin_reminder',
+    admin_new_booking_notification: 'admin_new_booking_notification',
+    admin_event_notification: 'admin_event_notification',
   };
   return map[emailType] ?? null;
 }

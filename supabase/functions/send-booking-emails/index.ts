@@ -36,6 +36,14 @@ interface AdminSettings {
   email_recurring_confirmation_template: string | null;
   email_change_template: string | null;
   email_admin_change_template: string | null;
+  email_admin_change_elements: EmailElements | null;
+  email_admin_new_booking_notification_enabled: boolean;
+  email_admin_new_booking_notification_template: string | null;
+  email_admin_new_booking_notification_elements: EmailElements | null;
+  email_admin_event_notification_enabled: boolean;
+  email_admin_event_notification_template: string | null;
+  email_admin_event_notification_elements: EmailElements | null;
+  email_admin_event_notification_lead_hours: number;
   email_invite_elements: EmailElements | null;
   email_confirmation_elements: EmailElements | null;
   email_cancellation_elements: EmailElements | null;
@@ -196,6 +204,26 @@ Change type: {{change_type}}
 {{change_details}}
 
 Client notes: {{client_notes}}`,
+  admin_new_booking_notification: `New Booking Confirmed with {{client_name}}
+
+A new meeting has been booked:
+
+Client: {{client_name}}
+Email: {{client_email}}
+Date: {{date}}
+Time: {{time}}
+Duration: {{duration}} minutes
+
+Client notes: {{client_notes}}`,
+  admin_event_notification: `Upcoming Meeting with {{client_name}}
+
+You have an upcoming meeting:
+
+Client: {{client_name}}
+Email: {{client_email}}
+Date: {{date}}
+Time: {{time}}
+Duration: {{duration}} minutes`,
 };
 
 function formatTime(time: string): string {
@@ -718,6 +746,8 @@ Deno.serve(async (req: Request) => {
         change: settings.email_change_template,
         reminder: settings.email_notification_template,
         recurring_confirmation: settings.email_recurring_confirmation_template,
+        admin_new_booking_notification: settings.email_admin_new_booking_notification_template,
+        admin_event_notification: settings.email_admin_event_notification_template,
       };
 
       const elementsMap: Record<string, EmailElements | null> = {
@@ -727,6 +757,8 @@ Deno.serve(async (req: Request) => {
         change: settings.email_change_elements,
         reminder: settings.email_notification_elements,
         recurring_confirmation: settings.email_recurring_confirmation_elements,
+        admin_new_booking_notification: settings.email_admin_new_booking_notification_elements,
+        admin_event_notification: settings.email_admin_event_notification_elements,
       };
 
       const subjectMap: Record<string, string> = {
@@ -736,6 +768,8 @@ Deno.serve(async (req: Request) => {
         change: `${TEST_SUBJECT_PREFIX}[DUMMY] Meeting Details Updated with ${settings.business_name}`,
         reminder: `${TEST_SUBJECT_PREFIX}[DUMMY] Reminder: Your meeting with ${settings.business_name}`,
         recurring_confirmation: `${TEST_SUBJECT_PREFIX}[DUMMY] Your Recurring Meeting Series with ${settings.business_name}`,
+        admin_new_booking_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] New Booking Confirmed with ${settings.business_name}`,
+        admin_event_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] Upcoming Meeting with ${settings.business_name}`,
       };
 
       const template = templateMap[type] || DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.confirmation;
