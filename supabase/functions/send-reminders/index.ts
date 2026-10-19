@@ -22,6 +22,7 @@ interface AdminSettings {
   admin_reminder_mode: "individual" | "daily";
   admin_daily_summary_time: string;
   admin_daily_summary_night_before: boolean;
+  email_admin_daily_summary_enabled: boolean;
   email_notification_enabled: boolean;
   email_notification_template: string | null;
   email_notification_elements: {
@@ -113,6 +114,14 @@ Time: {{time}}
 Duration: {{duration}} minutes
 
 See you soon!`;
+
+const DEFAULT_ADMIN_EVENT_TEMPLATE = `You have an upcoming meeting:
+
+Client: {{client_name}}
+Email: {{client_email}}
+Date: {{date}}
+Time: {{time}}
+Duration: {{duration}} minutes`;
 
 function getTzOffsetMs(date: Date, tz: string): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
@@ -259,20 +268,35 @@ function buildReminderHtml(textBody: string, booking: Booking, settings: AdminSe
   return `<div style="max-width:600px;margin:0 auto;padding:24px;">${sections.join("")}</div>`;
 }
 
-function buildAdminReminderHtml(booking: Booking, settings: AdminSettings): string {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-    <h2 style="color:#1f2937;">Upcoming Meeting Reminder</h2>
-    <p>You have an upcoming meeting:</p>
-    <div style="padding:16px;background:#f9fafb;border-radius:8px;">
-      <p style="margin:0;"><strong>${booking.first_name} ${booking.last_name}</strong></p>
-      <p style="margin:4px 0 0 0;">${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)}</p>
-      <p style="margin:4px 0 0 0;">Duration: ${booking.duration_minutes} minutes</p>
-      <p style="margin:4px 0 0 0;">Email: ${booking.client_email}</p>
-    </div>
-    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+function buildAdminEventHtml(booking: Booking, settings: AdminSettings, textBody: string): string {
+  const elements = settings.email_admin_event_notification_elements || { company_info: true, zoom: true, phone: true, google_calendar: true };
+  const sections: string[] = [];
+  sections.push(`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;white-space:pre-wrap;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`);
+
+  if (booking.zoom_link && elements.zoom && booking.meeting_location_type !== 'phone') {
+    sections.push(`<div style="margin-top:20px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+      <p style="margin:0;font-weight:600;color:#166534;">Zoom Meeting</p>
+      <p style="margin:8px 0 0 0;"><a href="${booking.zoom_link}" style="color:#15803d;word-break:break-all;">${booking.zoom_link}</a></p>
+      ${booking.zoom_passcode ? `<p style="margin:4px 0 0 0;color:#166534;">Passcode: ${booking.zoom_passcode}</p>` : ""}
+    </div>`);
+  }
+
+  if (booking.meeting_location_type === 'phone' && elements.phone) {
+    sections.push(`<div style="margin-top:20px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+      <p style="margin:0;font-weight:600;color:#374151;">Phone Meeting</p>
+      <p style="margin:8px 0 0 0;color:#6b7280;font-size:14px;">Client phone: ${booking.client_phone || ""}</p>
+    </div>`);
+  }
+
+  if (elements.company_info) {
+    sections.push(`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
       <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-    </div>
-  </div>`;
+      ${settings.contact_email ? `<p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_email}</p>` : ""}
+      ${elements.phone && settings.contact_phone ? `<p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_phone}</p>` : ""}
+    </div>`);
+  }
+
+  return `<div style="max-width:600px;margin:0 auto;padding:24px;">${sections.join("")}</div>`;
 }
 
 function buildDailySummaryHtml(bookings: Booking[], settings: AdminSettings, targetDate: string): string {
@@ -324,6 +348,21 @@ function buildEmailData(
     client_email: booking.client_email || "",
     ...extra,
   };
+}
+
+function getTimeInTz(tz: string): { now: Date; today: string; hhmm: string } {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(now);
+  const p: Record<string, string> = {};
+  parts.forEach(part => { p[part.type] = part.value; });
+  const today = `${p.year}-${p.month}-${p.day}`;
+  const hh = p.hour === "24" ? "00" : p.hour;
+  const hhmm = `${hh.padStart(2, "0")}:${p.minute}`;
+  return { now, today, hhmm };
 }
 
 Deno.serve(async (req: Request) => {
@@ -390,155 +429,102 @@ Deno.serve(async (req: Request) => {
 
         if (upcomingBookings) {
           for (const booking of upcomingBookings) {
-            const meetingStart = getMeetingInstantUTC(booking.date, booking.start_time, adminTz);
-            if (meetingStart > reminderStart && meetingStart <= reminderCutoff) {
-              const { data: reminderLog, error: reminderErr } = await supabase
-                .from("notification_log")
-                .select("id")
-                .eq("booking_id", booking.id)
-                .eq("type", "email")
-                .eq("payload->>emailType", "reminder")
-                .maybeSingle();
+            try {
+              const meetingStart = getMeetingInstantUTC(booking.date, booking.start_time, adminTz);
+              if (meetingStart > reminderStart && meetingStart <= reminderCutoff) {
+                const { data: reminderLog, error: reminderErr } = await supabase
+                  .from("notification_log")
+                  .select("id")
+                  .eq("booking_id", booking.id)
+                  .eq("type", "email")
+                  .eq("payload->>emailType", "reminder")
+                  .maybeSingle();
 
-              if (reminderErr) {
-                console.error("Dedup check failed for reminder:", reminderErr.message);
-                continue;
-              }
-
-              const { data: immediateLog, error: immediateErr } = await supabase
-                .from("notification_log")
-                .select("id")
-                .eq("booking_id", booking.id)
-                .eq("type", "email")
-                .eq("payload->>emailType", "reminder_immediate")
-                .maybeSingle();
-
-              if (immediateErr) {
-                console.error("Dedup check failed for reminder_immediate:", immediateErr.message);
-                continue;
-              }
-
-              if (reminderLog || immediateLog) continue;
-
-              const template = settings.email_notification_template || DEFAULT_REMINDER_TEMPLATE;
-              const textBody = fillTemplate(template, {
-                client_name: `${booking.first_name} ${booking.last_name}`,
-                business_name: settings.business_name,
-                date: formatBookingDate(booking, adminTz),
-                time: formatBookingTime(booking, adminTz),
-                duration: booking.duration_minutes.toString(),
-              });
-
-              let effectiveAdminPhone: string | undefined;
-              let effectiveZoomLink = booking.zoom_link;
-              if (booking.meeting_type_id) {
-                const { data: mt } = await supabase
-                  .from("meeting_types")
-                  .select("id, name, zoom_link, contact_phone_override")
-                  .eq("id", booking.meeting_type_id)
-                  .maybeSingle() as { data: MeetingType | null };
-                if (mt) {
-                  effectiveAdminPhone = mt.contact_phone_override || undefined;
-                  effectiveZoomLink = booking.zoom_link || mt.zoom_link || settings.zoom_default_link || undefined;
+                if (reminderErr) {
+                  console.error("Dedup check failed for reminder:", reminderErr.message);
+                  continue;
                 }
+
+                const { data: immediateLog, error: immediateErr } = await supabase
+                  .from("notification_log")
+                  .select("id")
+                  .eq("booking_id", booking.id)
+                  .eq("type", "email")
+                  .eq("payload->>emailType", "reminder_immediate")
+                  .maybeSingle();
+
+                if (immediateErr) {
+                  console.error("Dedup check failed for reminder_immediate:", immediateErr.message);
+                  continue;
+                }
+
+                if (reminderLog || immediateLog) continue;
+
+                const template = settings.email_notification_template || DEFAULT_REMINDER_TEMPLATE;
+                const textBody = fillTemplate(template, {
+                  client_name: `${booking.first_name} ${booking.last_name}`,
+                  business_name: settings.business_name,
+                  date: formatBookingDate(booking, adminTz),
+                  time: formatBookingTime(booking, adminTz),
+                  duration: booking.duration_minutes.toString(),
+                });
+
+                let effectiveAdminPhone: string | undefined;
+                let effectiveZoomLink = booking.zoom_link;
+                if (booking.meeting_type_id) {
+                  const { data: mt } = await supabase
+                    .from("meeting_types")
+                    .select("id, name, zoom_link, contact_phone_override")
+                    .eq("id", booking.meeting_type_id)
+                    .maybeSingle() as { data: MeetingType | null };
+                  if (mt) {
+                    effectiveAdminPhone = mt.contact_phone_override || undefined;
+                    effectiveZoomLink = booking.zoom_link || mt.zoom_link || settings.zoom_default_link || undefined;
+                  }
+                }
+                const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
+
+                const reminderData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone);
+
+                const { html, subject } = await renderEmailWithFallback(
+                  "notification",
+                  reminderData,
+                  mergedTemplates,
+                  () => ({
+                    html: buildReminderHtml(textBody, bookingWithZoom, settings, userSiteUrl, effectiveAdminPhone),
+                    subject: `${TEST_SUBJECT_PREFIX}Reminder: Your meeting with ${settings.business_name}`,
+                  }),
+                );
+
+                const sent = await sendEmail(resendApiKey, fromName, fromEmail, booking.client_email, subject, html);
+                if (sent) totalEmailsSent++;
+
+                await supabase.from("notification_log").insert({
+                  booking_id: booking.id,
+                  user_id: booking.user_id,
+                  type: "email",
+                  status: sent ? "sent" : "failed",
+                  payload: { emailType: "reminder", recipient: booking.client_email },
+                });
               }
-              const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
-
-              const reminderData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone);
-
-              const { html, subject } = await renderEmailWithFallback(
-                "notification",
-                reminderData,
-                mergedTemplates,
-                () => ({
-                  html: buildReminderHtml(textBody, bookingWithZoom, settings, userSiteUrl, effectiveAdminPhone),
-                  subject: `${TEST_SUBJECT_PREFIX}Reminder: Your meeting with ${settings.business_name}`,
-                }),
-              );
-
-              const sent = await sendEmail(resendApiKey, fromName, fromEmail, booking.client_email, subject, html);
-              if (sent) totalEmailsSent++;
-
-              await supabase.from("notification_log").insert({
-                booking_id: booking.id,
-                user_id: booking.user_id,
-                type: "email",
-                status: sent ? "sent" : "failed",
-                payload: { emailType: "reminder", recipient: booking.client_email },
-              });
+            } catch (err) {
+              console.error(`Client reminder failed for booking ${booking.id}:`, err instanceof Error ? err.message : err);
             }
           }
         }
       }
 
-      // --- Admin reminders ---
-      if (settings.notification_enabled) {
+      // --- Admin event notification ---
+      // Replaces the legacy admin-reminder system. Treats null enabled as
+      // false so existing users are not surprised by a new scheduled email.
+      if (settings.email_admin_event_notification_enabled === true) {
         const adminEmail = settings.notification_email || settings.contact_email;
         if (adminEmail) {
-          if (settings.admin_reminder_mode === "daily") {
-            const targetDate = settings.admin_daily_summary_night_before
-              ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: adminTz })
-              : today;
-
-            const { data: todayBookings } = await supabase
-              .from("bookings")
-              .select("*")
-              .eq("status", "confirmed")
-              .eq("user_id", settings.user_id)
-              .eq("date", targetDate)
-              .order("start_time", { ascending: true }) as { data: Booking[] | null };
-
-            if (todayBookings && todayBookings.length > 0) {
-              const logKey = `daily_summary_${targetDate}_${settings.user_id}`;
-              const { data: existingLog, error: dedupErr } = await supabase
-                .from("notification_log")
-                .select("id")
-                .eq("type", "email")
-                .eq("payload->>emailType", logKey)
-                .maybeSingle();
-
-              if (dedupErr) {
-                console.error("Dedup check failed for daily summary:", dedupErr.message);
-                continue;
-              }
-
-              if (!existingLog) {
-                const dailySummaryData: Record<string, any> = {
-                  business_name: settings.business_name,
-                  business_contact_email: settings.contact_email || "",
-                  business_contact_phone: settings.contact_phone || "",
-                  admin_timezone: adminTz,
-                  client_timezone: adminTz,
-                  session_list: todayBookings.map(b => ({ date: b.date, start_time: b.start_time })),
-                };
-
-                const { html, subject } = await renderEmailWithFallback(
-                  "admin_daily_summary",
-                  dailySummaryData,
-                  mergedTemplates,
-                  () => ({
-                    html: buildDailySummaryHtml(todayBookings, settings, targetDate),
-                    subject: `${TEST_SUBJECT_PREFIX}Daily Meeting Summary - ${formatDisplayDate(targetDate)}`,
-                  }),
-                );
-
-                const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, subject, html);
-                if (sent) totalEmailsSent++;
-
-                await supabase.from("notification_log").insert({
-                  booking_id: todayBookings[0].id,
-                  user_id: settings.user_id,
-                  type: "email",
-                  status: sent ? "sent" : "failed",
-                  payload: { emailType: logKey, recipient: adminEmail },
-                });
-              }
-            }
-          } else {
-            const leadHours = settings.notification_lead_hours ?? 24;
+          try {
+            const leadHours = settings.email_admin_event_notification_lead_hours ?? 24;
             const leadMs = leadHours * 60 * 60 * 1000;
-            const reminderCutoff = new Date(now.getTime() + leadMs);
-            const reminderStart = new Date(now.getTime());
+            const cutoff = new Date(now.getTime() + leadMs);
+            const windowStart = new Date(now.getTime());
 
             const { data: upcomingBookings } = await supabase
               .from("bookings")
@@ -546,13 +532,16 @@ Deno.serve(async (req: Request) => {
               .eq("status", "confirmed")
               .eq("user_id", settings.user_id)
               .gte("date", today)
-              .order("date", { ascending: true }) as { data: Booking[] | null };
+              .order("date", { ascending: true })
+              .order("start_time", { ascending: true }) as { data: Booking[] | null };
 
             if (upcomingBookings) {
               for (const booking of upcomingBookings) {
-                const meetingStart = getMeetingInstantUTC(booking.date, booking.start_time, adminTz);
-                if (meetingStart > reminderStart && meetingStart <= reminderCutoff) {
-                  const logKey = `admin_reminder_${booking.id}`;
+                try {
+                  const meetingStart = getMeetingInstantUTC(booking.date, booking.start_time, adminTz);
+                  if (!(meetingStart > windowStart && meetingStart <= cutoff)) continue;
+
+                  const logKey = `admin_event_notification_${booking.id}`;
                   const { data: existingLog, error: dedupErr } = await supabase
                     .from("notification_log")
                     .select("id")
@@ -561,34 +550,51 @@ Deno.serve(async (req: Request) => {
                     .maybeSingle();
 
                   if (dedupErr) {
-                    console.error("Dedup check failed for admin reminder:", dedupErr.message);
+                    console.error("Dedup check failed for admin event notification:", dedupErr.message);
                     continue;
                   }
-
                   if (existingLog) continue;
 
-                  const adminReminderData: Record<string, any> = {
+                  let effectiveAdminPhone: string | undefined;
+                  let effectiveZoomLink = booking.zoom_link;
+                  if (booking.meeting_type_id) {
+                    const { data: mt } = await supabase
+                      .from("meeting_types")
+                      .select("id, name, zoom_link, contact_phone_override")
+                      .eq("id", booking.meeting_type_id)
+                      .maybeSingle() as { data: MeetingType | null };
+                    if (mt) {
+                      effectiveAdminPhone = mt.contact_phone_override || undefined;
+                      effectiveZoomLink = booking.zoom_link || mt.zoom_link || settings.zoom_default_link || undefined;
+                    }
+                  }
+                  const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
+
+                  const dateDisplay = formatBookingDate(bookingWithZoom, adminTz);
+                  const timeDisplay = formatBookingTime(bookingWithZoom, adminTz);
+
+                  const template = settings.email_admin_event_notification_template || DEFAULT_ADMIN_EVENT_TEMPLATE;
+                  const textBody = fillTemplate(template, {
                     client_name: `${booking.first_name} ${booking.last_name}`,
+                    client_email: booking.client_email,
                     business_name: settings.business_name,
-                    business_contact_email: settings.contact_email || "",
-                    business_contact_phone: settings.contact_phone || "",
-                    admin_timezone: adminTz,
-                    client_timezone: adminTz,
-                    client_email: booking.client_email || "",
-                    date: formatDisplayDate(booking.date),
-                    time: formatTime(booking.start_time),
+                    date: dateDisplay,
+                    time: timeDisplay,
                     duration: booking.duration_minutes.toString(),
+                  });
+
+                  const adminEventData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone, {
                     change_type: "upcoming",
-                    change_details: `Client: ${booking.first_name} ${booking.last_name}\nEmail: ${booking.client_email}\nDate: ${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)}\nDuration: ${booking.duration_minutes} minutes`,
-                  };
+                    change_details: `Client: ${booking.first_name} ${booking.last_name}\nEmail: ${booking.client_email}\nDate: ${dateDisplay} at ${timeDisplay}\nDuration: ${booking.duration_minutes} minutes`,
+                  });
 
                   const { html, subject } = await renderEmailWithFallback(
-                    "admin_reminder",
-                    adminReminderData,
+                    "admin_event_notification",
+                    adminEventData,
                     mergedTemplates,
                     () => ({
-                      html: buildAdminReminderHtml(booking, settings),
-                      subject: `${TEST_SUBJECT_PREFIX}Reminder: Meeting with ${booking.first_name} ${booking.last_name}`,
+                      html: buildAdminEventHtml(bookingWithZoom, settings, textBody),
+                      subject: `${TEST_SUBJECT_PREFIX}Upcoming Meeting with ${booking.first_name} ${booking.last_name}`,
                     }),
                   );
 
@@ -602,9 +608,98 @@ Deno.serve(async (req: Request) => {
                     status: sent ? "sent" : "failed",
                     payload: { emailType: logKey, recipient: adminEmail },
                   });
+                } catch (err) {
+                  console.error(`Admin event notification failed for booking ${booking.id}:`, err instanceof Error ? err.message : err);
                 }
               }
             }
+          } catch (err) {
+            console.error(`Admin event notification block failed for user ${settings.user_id}:`, err instanceof Error ? err.message : err);
+          }
+        }
+      }
+
+      // --- Admin daily summary ---
+      // Rebuilt from the legacy daily-summary path. Gated by its own toggle.
+      // Reuses admin_daily_summary_time and admin_daily_summary_night_before.
+      if (settings.email_admin_daily_summary_enabled === true) {
+        const adminEmail = settings.notification_email || settings.contact_email;
+        if (adminEmail) {
+          try {
+            const summaryTime = settings.admin_daily_summary_time || "07:00";
+            const nightBefore = settings.admin_daily_summary_night_before ?? false;
+            const { today: tzToday, hhmm: tzHhmm } = getTimeInTz(adminTz);
+
+            // Only fire when the current time in the admin timezone is within
+            // a 30-minute window after the configured summary time. This
+            // keeps it to one send per day even when the cron runs every
+            // 15 minutes. Allow a slightly wider window (45 min) to be
+            // resilient to skipped cron runs.
+            const [targetH, targetM] = summaryTime.split(":").map(Number);
+            const targetMinutes = (targetH || 0) * 60 + (targetM || 0);
+            const [curH, curM] = tzHhmm.split(":").map(Number);
+            const curMinutes = (curH || 0) * 60 + (curM || 0);
+            const withinWindow = curMinutes >= targetMinutes && curMinutes <= targetMinutes + 45;
+
+            if (withinWindow) {
+              const targetDate = nightBefore
+                ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: adminTz })
+                : tzToday;
+
+              const { data: targetBookings } = await supabase
+                .from("bookings")
+                .select("*")
+                .eq("status", "confirmed")
+                .eq("user_id", settings.user_id)
+                .eq("date", targetDate)
+                .order("start_time", { ascending: true }) as { data: Booking[] | null };
+
+              if (targetBookings && targetBookings.length > 0) {
+                const logKey = `admin_daily_summary_${targetDate}_${settings.user_id}`;
+                const { data: existingLog, error: dedupErr } = await supabase
+                  .from("notification_log")
+                  .select("id")
+                  .eq("type", "email")
+                  .eq("payload->>emailType", logKey)
+                  .maybeSingle();
+
+                if (dedupErr) {
+                  console.error("Dedup check failed for daily summary:", dedupErr.message);
+                } else if (!existingLog) {
+                  const dailySummaryData: Record<string, any> = {
+                    business_name: settings.business_name,
+                    business_contact_email: settings.contact_email || "",
+                    business_contact_phone: settings.contact_phone || "",
+                    admin_timezone: adminTz,
+                    client_timezone: adminTz,
+                    session_list: targetBookings.map(b => ({ date: b.date, start_time: b.start_time })),
+                  };
+
+                  const { html, subject } = await renderEmailWithFallback(
+                    "admin_daily_summary",
+                    dailySummaryData,
+                    mergedTemplates,
+                    () => ({
+                      html: buildDailySummaryHtml(targetBookings, settings, targetDate),
+                      subject: `${TEST_SUBJECT_PREFIX}Daily Meeting Summary - ${formatDisplayDate(targetDate)}`,
+                    }),
+                  );
+
+                  const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, subject, html);
+                  if (sent) totalEmailsSent++;
+
+                  await supabase.from("notification_log").insert({
+                    booking_id: targetBookings[0].id,
+                    user_id: settings.user_id,
+                    type: "email",
+                    status: sent ? "sent" : "failed",
+                    payload: { emailType: logKey, recipient: adminEmail },
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`Admin daily summary block failed for user ${settings.user_id}:`, err instanceof Error ? err.message : err);
           }
         }
       }
