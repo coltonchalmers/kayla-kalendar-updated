@@ -33,6 +33,7 @@ const EMAIL_ENABLE_TOGGLES: { key: string; label: string; settingKey: string }[]
   { key: 'invite', label: 'Invite', settingKey: 'email_invite_enabled' },
   { key: 'notification', label: 'Reminder', settingKey: 'email_notification_enabled' },
   { key: 'admin_change_notification', label: 'Admin Change Notification', settingKey: 'email_admin_change_enabled' },
+  { key: 'admin_new_booking_notification', label: 'Admin New Booking', settingKey: 'email_admin_new_booking_notification_enabled' },
 ];
 
 function isValidEmail(email: string): boolean {
@@ -192,6 +193,7 @@ export default function SettingsPage() {
     invite: true,
     notification: true,
     admin_change_notification: true,
+    admin_new_booking_notification: true,
   });
 
   // Integrations tab
@@ -230,6 +232,7 @@ export default function SettingsPage() {
         invite: settings.email_invite_enabled ?? true,
         notification: settings.email_notification_enabled ?? true,
         admin_change_notification: settings.email_admin_change_enabled ?? true,
+        admin_new_booking_notification: settings.email_admin_new_booking_notification_enabled ?? true,
       });
 
       if (!emailTemplatesInitialized && settings.email_templates_json) {
@@ -290,6 +293,7 @@ export default function SettingsPage() {
         email_invite_enabled: emailEnableMap.invite,
         email_notification_enabled: emailEnableMap.notification,
         email_admin_change_enabled: emailEnableMap.admin_change_notification,
+        email_admin_new_booking_notification_enabled: emailEnableMap.admin_new_booking_notification,
         email_templates_json: emailTemplatesJson,
         email_from_name: emailFromName,
         email_from_address: emailFromAddress.trim(),

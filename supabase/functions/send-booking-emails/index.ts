@@ -595,6 +595,78 @@ async function sendImmediateReminderIfNeeded(
   });
 }
 
+async function sendAdminNewBookingNotification(
+  supabase: ReturnType<typeof createClient>,
+  booking: Booking,
+  settings: AdminSettings,
+  resendApiKey: string,
+  fromName: string,
+  fromEmail: string,
+  effectiveSiteUrl: string
+): Promise<void> {
+  try {
+    if (!settings.email_admin_new_booking_notification_enabled) return;
+
+    const adminEmail = settings.notification_email || settings.contact_email;
+    if (!adminEmail) return;
+
+    // Deduplicate: never send twice for the same booking
+    const { data: existingLog } = await supabase
+      .from("notification_log")
+      .select("id")
+      .eq("booking_id", booking.id)
+      .eq("type", "email")
+      .eq("payload->>emailType", "admin_new_booking_notification")
+      .maybeSingle();
+    if (existingLog) return;
+
+    const clientName = `${booking.first_name} ${booking.last_name}`;
+    const adminTz = settings.timezone || "America/New_York";
+    const dateDisplay = booking.date ? formatBookingDate(booking, adminTz) : "";
+    const timeDisplay = booking.start_time ? formatBookingTime(booking, adminTz) : "";
+
+    const template = settings.email_admin_new_booking_notification_template || DEFAULT_TEMPLATES.admin_new_booking_notification;
+    const elements = settings.email_admin_new_booking_notification_elements || { company_info: true, zoom: true, phone: true, google_calendar: true };
+    const mergedTemplates = mergeTemplates(settings.email_templates_json);
+
+    const textBody = fillTemplate(template, {
+      client_name: clientName,
+      client_email: booking.client_email,
+      business_name: settings.business_name,
+      date: dateDisplay,
+      time: timeDisplay,
+      duration: booking.duration_minutes.toString(),
+      client_notes: booking.client_notes || "",
+    });
+
+    const adminData = buildEmailData(booking, settings, effectiveSiteUrl, booking.zoom_link, undefined, {
+      client_email: booking.client_email,
+    });
+
+    const { html, subject } = await renderEmailWithFallback(
+      "admin_new_booking_notification",
+      adminData,
+      mergedTemplates,
+      () => ({
+        html: buildEmailHtml(textBody, elements, booking, settings, effectiveSiteUrl),
+        subject: `${TEST_SUBJECT_PREFIX}New Booking Confirmed with ${clientName}`,
+      }),
+    );
+
+    const sent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, subject, html);
+
+    await supabase.from("notification_log").insert({
+      booking_id: booking.id,
+      user_id: booking.user_id,
+      type: "email",
+      status: sent ? "sent" : "failed",
+      payload: { emailType: "admin_new_booking_notification", recipient: adminEmail },
+    });
+  } catch (err) {
+    console.error("sendAdminNewBookingNotification error:", err);
+  }
+}
+
 async function fetchSettingsForUser(supabase: ReturnType<typeof createClient>, userId?: string): Promise<AdminSettings | null> {
   let query = supabase.from("admin_settings").select("*");
   if (userId) {
@@ -1381,6 +1453,7 @@ Deno.serve(async (req: Request) => {
 
     if (type === "confirmation" && !forceResend) {
       await sendImmediateReminderIfNeeded(supabase, booking, settings, resendApiKey, fromName, fromEmail, effectiveSiteUrl);
+      await sendAdminNewBookingNotification(supabase, bookingWithZoom, settings, resendApiKey, fromName, fromEmail, effectiveSiteUrl);
     }
 
     return new Response(JSON.stringify({ sent }), {
