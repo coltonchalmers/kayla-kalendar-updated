@@ -224,6 +224,11 @@ Email: {{client_email}}
 Date: {{date}}
 Time: {{time}}
 Duration: {{duration}} minutes`,
+  admin_daily_summary: `Daily Meeting Summary
+
+Here is a summary of all your confirmed meetings for today:
+
+{{session_list}}`,
 };
 
 function formatTime(time: string): string {
@@ -820,6 +825,8 @@ Deno.serve(async (req: Request) => {
         recurring_confirmation: settings.email_recurring_confirmation_template,
         admin_new_booking_notification: settings.email_admin_new_booking_notification_template,
         admin_event_notification: settings.email_admin_event_notification_template,
+        admin_change_notification: settings.email_admin_change_template,
+        admin_daily_summary: null,
       };
 
       const elementsMap: Record<string, EmailElements | null> = {
@@ -831,6 +838,8 @@ Deno.serve(async (req: Request) => {
         recurring_confirmation: settings.email_recurring_confirmation_elements,
         admin_new_booking_notification: settings.email_admin_new_booking_notification_elements,
         admin_event_notification: settings.email_admin_event_notification_elements,
+        admin_change_notification: settings.email_admin_change_elements,
+        admin_daily_summary: null,
       };
 
       const subjectMap: Record<string, string> = {
@@ -842,6 +851,8 @@ Deno.serve(async (req: Request) => {
         recurring_confirmation: `${TEST_SUBJECT_PREFIX}[DUMMY] Your Recurring Meeting Series with ${settings.business_name}`,
         admin_new_booking_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] New Booking Confirmed with ${settings.business_name}`,
         admin_event_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] Upcoming Meeting with ${settings.business_name}`,
+        admin_change_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] Booking Changed by Client`,
+        admin_daily_summary: `${TEST_SUBJECT_PREFIX}[DUMMY] Daily Meeting Summary`,
       };
 
       const template = templateMap[type] || DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.confirmation;
@@ -856,6 +867,7 @@ Deno.serve(async (req: Request) => {
         duration: "30",
         client_notes: "This is a test note from the client.",
         notes_to_client: "This is a test note to the client.",
+        client_email: "test.client@example.com",
       };
 
       if (type === "reschedule") {
@@ -865,22 +877,38 @@ Deno.serve(async (req: Request) => {
         templateVars.new_time = formatTime(dummyBooking.start_time);
       }
 
-      if (type === "recurring_confirmation") {
+      if (type === "recurring_confirmation" || type === "admin_daily_summary") {
         templateVars.session_list = "1. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time) + "\n2. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
+      }
+
+      if (type === "admin_change_notification") {
+        templateVars.change_type = "rescheduled";
+        templateVars.change_details = "Previous: " + formatDisplayDate(dummyBooking.date) + " at 09:00 AM\nNew: " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
       }
 
       const textBody = fillTemplate(template, templateVars);
 
-      const dummyData = buildEmailData(dummyBooking, settings, effectiveSiteUrl, dummyBooking.zoom_link, undefined, {
+      const dummyExtraData: Record<string, any> = {
         old_date: type === "reschedule" ? dummyBooking.date : "",
         old_time: type === "reschedule" ? "09:00" : "",
         new_date: type === "reschedule" ? dummyBooking.date : "",
         new_time: type === "reschedule" ? dummyBooking.start_time : "",
-        session_list: type === "recurring_confirmation" ? [
+      };
+
+      if (type === "recurring_confirmation" || type === "admin_daily_summary") {
+        dummyExtraData.session_list = [
           { date: dummyBooking.date, start_time: dummyBooking.start_time },
           { date: dummyBooking.date, start_time: dummyBooking.start_time },
-        ] : undefined,
-      });
+        ];
+      }
+
+      if (type === "admin_change_notification") {
+        dummyExtraData.change_type = "rescheduled";
+        dummyExtraData.change_details = templateVars.change_details;
+        dummyExtraData.client_email = templateVars.client_email;
+      }
+
+      const dummyData = buildEmailData(dummyBooking, settings, effectiveSiteUrl, dummyBooking.zoom_link, undefined, dummyExtraData);
 
       const { html, subject } = await renderEmailWithFallback(
         type,
