@@ -173,7 +173,6 @@ export type EmailTypeKey =
   | 'notification'
   | 'admin_change_notification'
   | 'admin_daily_summary'
-  | 'admin_reminder'
   | 'admin_new_booking_notification'
   | 'admin_event_notification';
 
@@ -187,7 +186,6 @@ export interface AllEmailTemplates {
   notification: EmailTemplate | null;
   admin_change_notification: EmailTemplate | null;
   admin_daily_summary: EmailTemplate | null;
-  admin_reminder: EmailTemplate | null;
   admin_new_booking_notification: EmailTemplate | null;
   admin_event_notification: EmailTemplate | null;
 }

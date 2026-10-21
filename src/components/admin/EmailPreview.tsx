@@ -25,8 +25,8 @@ const PREVIEW_DATA: Record<string, any> = {
   old_time: '10:00',
   new_date: '2026-10-13',
   new_time: '14:00',
-  change_type: 'upcoming',
-  change_details: 'Client: Jane Doe\nEmail: jane.doe@example.com\nDate: Monday, October 13, 2026 at 2:00 PM\nDuration: 30 minutes',
+  change_type: 'rescheduled',
+  change_details: 'Previous: Monday, October 12, 2026 at 10:00 AM\nNew: Monday, October 13, 2026 at 2:00 PM',
   client_email: 'jane.doe@example.com',
   session_list: [
     { date: '2026-10-13', start_time: '14:00' },

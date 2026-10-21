@@ -3,15 +3,15 @@
   "functions": {
     "google-calendar-sync": {
       "hasChanged": false,
-      "hash": "5724aff5395ae582923d1686fc46ed08ff98fae19b846e3b84e78143ac0e7421f9f06756f6ef5f427ade0fb1d5b2b7b6da0cd23dcee9c7701e7677907e4020f2"
+      "hash": "5724aff5395ae582923d1686fc46ed08ff98fae19b846e3b84e78143ac0e7421089153129a93a3d109ac2ed22d303a218c05f15f5f4c567bf1eb9a88ad37e7eb"
     },
     "send-booking-emails": {
       "hasChanged": false,
-      "hash": "e35d56fbfe979a2a1da251c32bbd16dcc4f2580ffd7c414c092cc036b9c2cbe3f9f06756f6ef5f427ade0fb1d5b2b7b6da0cd23dcee9c7701e7677907e4020f2"
+      "hash": "e35d56fbfe979a2a1da251c32bbd16dcc4f2580ffd7c414c092cc036b9c2cbe3089153129a93a3d109ac2ed22d303a218c05f15f5f4c567bf1eb9a88ad37e7eb"
     },
     "send-reminders": {
       "hasChanged": false,
-      "hash": "d5be9d71b94bdec1cfe8d9dfeab3ec30823ae60c1c3b8246b835aea639cce14ef9f06756f6ef5f427ade0fb1d5b2b7b6da0cd23dcee9c7701e7677907e4020f2"
+      "hash": "d5be9d71b94bdec1cfe8d9dfeab3ec30823ae60c1c3b8246b835aea639cce14e089153129a93a3d109ac2ed22d303a218c05f15f5f4c567bf1eb9a88ad37e7eb"
     }
   }
 }

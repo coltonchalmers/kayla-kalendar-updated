@@ -185,19 +185,6 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     ],
   ),
 
-  admin_reminder: makeTemplate(
-    'Upcoming meeting reminder',
-    'You have an upcoming meeting with {{client_name}}.',
-    [
-      heading('Upcoming Meeting Reminder'),
-      text('You have an upcoming meeting:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
-      spacer(8),
-      staticBlock('changeDetails'),
-      divider(),
-      staticBlock('footer'),
-    ],
-  ),
-
   admin_new_booking_notification: makeTemplate(
     'New Booking Confirmed with {{client_name}}',
     '{{client_name}} has booked a meeting with {{business_name}}.',
