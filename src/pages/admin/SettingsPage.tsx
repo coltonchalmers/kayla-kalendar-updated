@@ -42,6 +42,17 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function validateLeadHours(value: string, fieldName: string): string | undefined {
+  const num = parseFloat(value);
+  if (isNaN(num)) return `${fieldName} must be a number`;
+  if (num < 0.25) return `${fieldName} must be at least 0.25 hours (15 minutes)`;
+  const quarters = num * 4;
+  if (Math.abs(quarters - Math.round(quarters)) > 0.001) {
+    return `${fieldName} must be in 15-minute increments (0.25, 0.5, 0.75, 1, etc.)`;
+  }
+  return undefined;
+}
+
 function GoogleCalendarCard({
   autoSync,
   onAutoSyncChange,
@@ -260,6 +271,19 @@ export default function SettingsPage() {
       newErrors.contactEmail = 'Please enter a valid email address';
     }
 
+    const leadErr = validateLeadHours(leadHours, 'Minimum Lead Time');
+    if (leadErr) newErrors.leadHours = leadErr;
+
+    if (emailEnableMap.notification) {
+      const reminderErr = validateLeadHours(clientReminderLeadHours, 'Client Reminder Lead Time');
+      if (reminderErr) newErrors.clientReminderLeadHours = reminderErr;
+    }
+
+    if (emailEnableMap.admin_event_notification) {
+      const adminErr = validateLeadHours(adminEventLeadHours, 'Admin Event Notification Lead Time');
+      if (adminErr) newErrors.adminEventLeadHours = adminErr;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -460,11 +484,12 @@ export default function SettingsPage() {
               <Input
                 label="Minimum Lead Time (hours)"
                 type="number"
-                step="0.5"
-                min="0"
+                step="0.25"
+                min="0.25"
                 value={leadHours}
                 onChange={e => setLeadHours(e.target.value)}
-                hint="How far in advance clients must book. Also blocks clients from cancelling or rescheduling within this window."
+                error={errors.leadHours}
+                hint="How far in advance clients must book. Also blocks clients from cancelling or rescheduling within this window. In 15-minute increments."
               />
               <Input
                 label="Booking Window (days)"
@@ -503,39 +528,67 @@ export default function SettingsPage() {
 
           <Card>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Admin Notifications</h2>
-            <p className="text-sm text-gray-500 mb-5">Get notified about upcoming meetings. Both types can be toggled from the Emails tab too.</p>
-            <div className="space-y-4">
-              {emailEnableMap.admin_event_notification && (
-                <Input
-                  label="Admin Event Notification Lead Time (hours)"
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={adminEventLeadHours}
-                  onChange={e => setAdminEventLeadHours(e.target.value)}
-                  hint="e.g., 24 = notify 1 day before, 2 = notify 2 hours before, 0.5 = 30 minutes before. Toggle this email type on in the Emails tab."
-                />
-              )}
-              {emailEnableMap.admin_daily_summary && (
-                <>
-                  <Input
-                    label="Daily Summary Time"
-                    type="time"
-                    value={adminDailySummaryTime}
-                    onChange={e => setAdminDailySummaryTime(e.target.value)}
-                    hint="When to send the daily summary (defaults to 7:00 AM)"
+            <p className="text-sm text-gray-500 mb-5">Get notified about upcoming meetings. Toggle each type on or off here or in the Emails tab.</p>
+            <div className="space-y-5">
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer mb-3">
+                  <input
+                    type="checkbox"
+                    checked={emailEnableMap.admin_event_notification ?? false}
+                    onChange={e => setEmailEnableMap(prev => ({ ...prev, admin_event_notification: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
                   />
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={adminDailySummaryNightBefore}
-                      onChange={e => setAdminDailySummaryNightBefore(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+                  <span className="text-sm font-semibold text-gray-800">Admin Event Notification</span>
+                </label>
+                <div className={classNames(emailEnableMap.admin_event_notification ? '' : 'opacity-50 pointer-events-none')}>
+                  <Input
+                    label="Lead Time (hours)"
+                    type="number"
+                    step="0.25"
+                    min="0.25"
+                    value={adminEventLeadHours}
+                    onChange={e => setAdminEventLeadHours(e.target.value)}
+                    error={errors.adminEventLeadHours}
+                    disabled={!emailEnableMap.admin_event_notification}
+                    hint="e.g., 24 = notify 1 day before, 2 = notify 2 hours before, 0.25 = 15 minutes before. In 15-minute increments."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer mb-3">
+                  <input
+                    type="checkbox"
+                    checked={emailEnableMap.admin_daily_summary ?? false}
+                    onChange={e => setEmailEnableMap(prev => ({ ...prev, admin_daily_summary: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-800">Admin Daily Summary</span>
+                </label>
+                <div className={classNames(emailEnableMap.admin_daily_summary ? '' : 'opacity-50 pointer-events-none')}>
+                  <div className="space-y-4">
+                    <Input
+                      label="Daily Summary Time"
+                      type="time"
+                      value={adminDailySummaryTime}
+                      onChange={e => setAdminDailySummaryTime(e.target.value)}
+                      hint="When to send the daily summary (defaults to 7:00 AM)"
+                      disabled={!emailEnableMap.admin_daily_summary}
                     />
-                    <span className="text-sm font-medium text-gray-700">Send the night before instead of the morning of</span>
-                  </label>
-                </>
-              )}
+                    <label className={classNames('flex items-center gap-3', emailEnableMap.admin_daily_summary ? 'cursor-pointer' : 'cursor-not-allowed')}>
+                      <input
+                        type="checkbox"
+                        checked={adminDailySummaryNightBefore}
+                        onChange={e => setAdminDailySummaryNightBefore(e.target.checked)}
+                        disabled={!emailEnableMap.admin_daily_summary}
+                        className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Send the night before instead of the morning of</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <Input
                 label="Notification email"
                 type="email"
@@ -549,16 +602,29 @@ export default function SettingsPage() {
 
           <Card>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Client Reminders</h2>
-            <p className="text-sm text-gray-500 mb-5">Automatically remind clients about their upcoming meetings.</p>
-            <Input
-              label="Client Reminder Lead Time (hours)"
-              type="number"
-              step="0.5"
-              min="0.5"
-              value={clientReminderLeadHours}
-              onChange={e => setClientReminderLeadHours(e.target.value)}
-              hint="e.g., 24 = remind clients 1 day before, 2 = remind 2 hours before, 0.5 = 30 minutes before"
-            />
+            <p className="text-sm text-gray-500 mb-5">Automatically remind clients about their upcoming meetings. Toggle on or off here or in the Emails tab.</p>
+            <label className="flex items-center gap-3 cursor-pointer mb-3">
+              <input
+                type="checkbox"
+                checked={emailEnableMap.notification ?? true}
+                onChange={e => setEmailEnableMap(prev => ({ ...prev, notification: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+              />
+              <span className="text-sm font-semibold text-gray-800">Enable Client Reminders</span>
+            </label>
+            <div className={classNames(emailEnableMap.notification ? '' : 'opacity-50 pointer-events-none')}>
+              <Input
+                label="Client Reminder Lead Time (hours)"
+                type="number"
+                step="0.25"
+                min="0.25"
+                value={clientReminderLeadHours}
+                onChange={e => setClientReminderLeadHours(e.target.value)}
+                error={errors.clientReminderLeadHours}
+                disabled={!emailEnableMap.notification}
+                hint="e.g., 24 = remind clients 1 day before, 2 = remind 2 hours before, 0.25 = 15 minutes before. In 15-minute increments."
+              />
+            </div>
           </Card>
         </div>
       )}
