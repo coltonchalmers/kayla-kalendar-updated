@@ -264,6 +264,7 @@ export interface AdminSettings {
   email_admin_event_notification_template: string | null;
   email_admin_event_notification_elements: EmailElements | null;
   email_admin_event_notification_lead_hours: number;
+  email_admin_daily_summary_enabled: boolean;
   email_templates_json: AllEmailTemplates | null;
   slot_increment_minutes: number;
   created_at: string;

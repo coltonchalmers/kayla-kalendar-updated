@@ -34,6 +34,8 @@ const EMAIL_ENABLE_TOGGLES: { key: string; label: string; settingKey: string }[]
   { key: 'notification', label: 'Reminder', settingKey: 'email_notification_enabled' },
   { key: 'admin_change_notification', label: 'Admin Change Notification', settingKey: 'email_admin_change_enabled' },
   { key: 'admin_new_booking_notification', label: 'Admin New Booking', settingKey: 'email_admin_new_booking_notification_enabled' },
+  { key: 'admin_event_notification', label: 'Admin Event Notification', settingKey: 'email_admin_event_notification_enabled' },
+  { key: 'admin_daily_summary', label: 'Admin Daily Summary', settingKey: 'email_admin_daily_summary_enabled' },
 ];
 
 function isValidEmail(email: string): boolean {
@@ -171,11 +173,9 @@ export default function SettingsPage() {
   const [windowDays, setWindowDays] = useState('90');
   const [bufferMinutes, setBufferMinutes] = useState('15');
   const [slotIncrement, setSlotIncrement] = useState('15');
-  const [notifEnabled, setNotifEnabled] = useState(false);
-  const [notifLeadHours, setNotifLeadHours] = useState('24');
   const [notifEmail, setNotifEmail] = useState('');
   const [clientReminderLeadHours, setClientReminderLeadHours] = useState('24');
-  const [adminReminderMode, setAdminReminderMode] = useState<'individual' | 'daily'>('individual');
+  const [adminEventLeadHours, setAdminEventLeadHours] = useState('24');
   const [adminDailySummaryTime, setAdminDailySummaryTime] = useState('07:00');
   const [adminDailySummaryNightBefore, setAdminDailySummaryNightBefore] = useState(false);
 
@@ -194,6 +194,8 @@ export default function SettingsPage() {
     notification: true,
     admin_change_notification: true,
     admin_new_booking_notification: true,
+    admin_event_notification: false,
+    admin_daily_summary: false,
   });
 
   // Integrations tab
@@ -215,11 +217,9 @@ export default function SettingsPage() {
       setWindowDays(settings.booking_window_days.toString());
       setBufferMinutes((settings.buffer_minutes ?? 15).toString());
       setSlotIncrement((settings.slot_increment_minutes ?? 15).toString());
-      setNotifEnabled(settings.notification_enabled ?? false);
-      setNotifLeadHours(settings.notification_lead_hours?.toString() || '24');
       setNotifEmail(settings.notification_email || '');
       setClientReminderLeadHours((settings.client_reminder_lead_hours ?? 24).toString());
-      setAdminReminderMode((settings.admin_reminder_mode as 'individual' | 'daily') || 'individual');
+      setAdminEventLeadHours((settings.email_admin_event_notification_lead_hours ?? 24).toString());
       setAdminDailySummaryTime(settings.admin_daily_summary_time || '07:00');
       setAdminDailySummaryNightBefore(settings.admin_daily_summary_night_before ?? false);
 
@@ -233,6 +233,8 @@ export default function SettingsPage() {
         notification: settings.email_notification_enabled ?? true,
         admin_change_notification: settings.email_admin_change_enabled ?? true,
         admin_new_booking_notification: settings.email_admin_new_booking_notification_enabled ?? true,
+        admin_event_notification: settings.email_admin_event_notification_enabled ?? false,
+        admin_daily_summary: settings.email_admin_daily_summary_enabled ?? false,
       });
 
       if (!emailTemplatesInitialized && settings.email_templates_json) {
@@ -257,9 +259,7 @@ export default function SettingsPage() {
     if (contactEmail && !isValidEmail(contactEmail)) {
       newErrors.contactEmail = 'Please enter a valid email address';
     }
-    if (notifEmail && !isValidEmail(notifEmail)) {
-      newErrors.notifEmail = 'Please enter a valid email address';
-    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -274,17 +274,15 @@ export default function SettingsPage() {
         business_name: businessName,
         contact_email: contactEmail,
         contact_phone: contactPhone,
-        booking_lead_hours: parseInt(leadHours) || 2,
+        booking_lead_hours: parseFloat(leadHours) || 2,
         booking_window_days: parseInt(windowDays) || 90,
         buffer_minutes: parseInt(bufferMinutes) || 0,
         slot_increment_minutes: parseInt(slotIncrement) || 15,
-        notification_enabled: notifEnabled,
-        notification_lead_hours: parseInt(notifLeadHours) || 24,
         notification_email: notifEmail.trim(),
-        client_reminder_lead_hours: parseInt(clientReminderLeadHours) || 24,
-        admin_reminder_mode: adminReminderMode,
+        client_reminder_lead_hours: parseFloat(clientReminderLeadHours) || 24,
         admin_daily_summary_time: adminDailySummaryTime,
         admin_daily_summary_night_before: adminDailySummaryNightBefore,
+        email_admin_event_notification_lead_hours: parseFloat(adminEventLeadHours) || 24,
         email_confirmation_enabled: emailEnableMap.confirmation,
         email_recurring_confirmation_enabled: emailEnableMap.recurring_confirmation,
         email_cancellation_enabled: emailEnableMap.cancellation,
@@ -294,6 +292,8 @@ export default function SettingsPage() {
         email_notification_enabled: emailEnableMap.notification,
         email_admin_change_enabled: emailEnableMap.admin_change_notification,
         email_admin_new_booking_notification_enabled: emailEnableMap.admin_new_booking_notification,
+        email_admin_event_notification_enabled: emailEnableMap.admin_event_notification,
+        email_admin_daily_summary_enabled: emailEnableMap.admin_daily_summary,
         email_templates_json: emailTemplatesJson,
         email_from_name: emailFromName,
         email_from_address: emailFromAddress.trim(),
@@ -460,9 +460,10 @@ export default function SettingsPage() {
               <Input
                 label="Minimum Lead Time (hours)"
                 type="number"
+                step="0.5"
+                min="0"
                 value={leadHours}
                 onChange={e => setLeadHours(e.target.value)}
-                min="0"
                 hint="How far in advance clients must book. Also blocks clients from cancelling or rescheduling within this window."
               />
               <Input
@@ -502,37 +503,20 @@ export default function SettingsPage() {
 
           <Card>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Admin Notifications</h2>
-            <p className="text-sm text-gray-500 mb-5">Get notified about upcoming meetings before they happen.</p>
+            <p className="text-sm text-gray-500 mb-5">Get notified about upcoming meetings. Both types can be toggled from the Emails tab too.</p>
             <div className="space-y-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notifEnabled}
-                  onChange={e => setNotifEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Enable upcoming meeting notifications</span>
-              </label>
-              <Select
-                label="Admin Reminder Mode"
-                value={adminReminderMode}
-                onChange={e => setAdminReminderMode(e.target.value as 'individual' | 'daily')}
-                options={[
-                  { value: 'individual', label: 'Individual Reminders (sent at lead time before each meeting)' },
-                  { value: 'daily', label: 'Daily Summary (one email listing all meetings for the day)' },
-                ]}
-              />
-              {adminReminderMode === 'individual' ? (
+              {emailEnableMap.admin_event_notification && (
                 <Input
-                  label="Notify me this many hours before each meeting"
+                  label="Admin Event Notification Lead Time (hours)"
                   type="number"
-                  value={notifLeadHours}
-                  onChange={e => setNotifLeadHours(e.target.value)}
-                  min="1"
-                  max="168"
-                  hint="e.g., 24 = notify 1 day before, 2 = notify 2 hours before"
+                  step="0.5"
+                  min="0.5"
+                  value={adminEventLeadHours}
+                  onChange={e => setAdminEventLeadHours(e.target.value)}
+                  hint="e.g., 24 = notify 1 day before, 2 = notify 2 hours before, 0.5 = 30 minutes before. Toggle this email type on in the Emails tab."
                 />
-              ) : (
+              )}
+              {emailEnableMap.admin_daily_summary && (
                 <>
                   <Input
                     label="Daily Summary Time"
@@ -558,8 +542,7 @@ export default function SettingsPage() {
                 value={notifEmail}
                 onChange={e => setNotifEmail(e.target.value)}
                 placeholder="Leave blank to use contact email"
-                hint="Where to send meeting reminders"
-                error={errors.notifEmail}
+                hint="Where admin notification and summary emails are sent. Leave blank to use your contact email."
               />
             </div>
           </Card>
@@ -570,11 +553,11 @@ export default function SettingsPage() {
             <Input
               label="Client Reminder Lead Time (hours)"
               type="number"
+              step="0.5"
+              min="0.5"
               value={clientReminderLeadHours}
               onChange={e => setClientReminderLeadHours(e.target.value)}
-              min="1"
-              max="168"
-              hint="e.g., 24 = remind clients 1 day before, 2 = remind 2 hours before"
+              hint="e.g., 24 = remind clients 1 day before, 2 = remind 2 hours before, 0.5 = 30 minutes before"
             />
           </Card>
         </div>
