@@ -544,9 +544,10 @@ Deno.serve(async (req: Request) => {
                   const logKey = `admin_event_notification_${booking.id}`;
                   const { data: existingLog, error: dedupErr } = await supabase
                     .from("notification_log")
-                    .select("id")
+                    .select("id, status")
                     .eq("type", "email")
                     .eq("payload->>emailType", logKey)
+                    .eq("status", "sent")
                     .maybeSingle();
 
                   if (dedupErr) {
@@ -583,10 +584,7 @@ Deno.serve(async (req: Request) => {
                     duration: booking.duration_minutes.toString(),
                   });
 
-                  const adminEventData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone, {
-                    change_type: "upcoming",
-                    change_details: `Client: ${booking.first_name} ${booking.last_name}\nEmail: ${booking.client_email}\nDate: ${dateDisplay} at ${timeDisplay}\nDuration: ${booking.duration_minutes} minutes`,
-                  });
+                  const adminEventData = buildEmailData(bookingWithZoom, settings, userSiteUrl, effectiveZoomLink, effectiveAdminPhone, {});
 
                   const { html, subject } = await renderEmailWithFallback(
                     "admin_event_notification",
@@ -658,9 +656,10 @@ Deno.serve(async (req: Request) => {
                 const logKey = `admin_daily_summary_${targetDate}_${settings.user_id}`;
                 const { data: existingLog, error: dedupErr } = await supabase
                   .from("notification_log")
-                  .select("id")
+                  .select("id, status")
                   .eq("type", "email")
                   .eq("payload->>emailType", logKey)
+                  .eq("status", "sent")
                   .maybeSingle();
 
                 if (dedupErr) {
