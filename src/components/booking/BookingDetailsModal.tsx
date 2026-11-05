@@ -828,7 +828,6 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
                 <Dropdown
                   triggerLabel="More Actions"
                   items={[
-                    { label: 'Propose Times', icon: <Send className="w-4 h-4" />, onClick: () => { setProposeSlots([]); setProposeDate(''); setProposeTime(''); setProposeMessage(''); setProposeAllowFullAvailability(true); setMode('propose_reschedule'); } },
                     { label: 'Complete', icon: <CheckCircle className="w-4 h-4" />, onClick: handleComplete, disabled: actionLoading },
                     ...(isRecurring && upcomingInGroup.length > 1 ? [
                       { label: 'Edit Series', icon: <Repeat className="w-4 h-4" />, onClick: () => { initSeriesSessions(); setMode('series'); } },

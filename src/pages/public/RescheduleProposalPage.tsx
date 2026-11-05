@@ -203,8 +203,8 @@ export default function RescheduleProposalPage() {
     return (
       <Card className="text-center py-16 max-w-lg mx-auto">
         <AlertCircle className="w-12 h-12 text-red-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Link Not Found</h2>
-        <p className="text-gray-500 mb-6">This reschedule link is no longer active or does not exist.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Link Expired</h2>
+        <p className="text-gray-500 mb-6">This reschedule link has expired or is no longer available. Please contact us for a new one.</p>
       </Card>
     );
   }

@@ -287,6 +287,18 @@ npm run preview    # Preview production build
 
 18. **`allow_full_availability` on proposal_links and reschedule_proposals** controls whether the client can browse the full availability calendar in addition to curated slots. Defaults to true for backward compatibility.
 
+## Disabled Features
+
+- **Reschedule requests (propose new times) - hidden 2026-11-05**: The "Propose Times" option under More Actions in the booking window was removed, so admins can no longer send clients a link to pick a new time. Confirmed reschedules (moving a meeting directly) are unaffected. The client page at `/reschedule/:token` still exists and shows an "expired" message for old links. The proposal code (`RescheduleProposalPage`, `useRescheduleProposals`, `triggerRescheduleProposalEmail`, and the propose panel in `BookingDetailsModal`) and the `reschedule_proposals` tables were kept intentionally for a future rebuild.
+
+  Before turning this back on, re-check:
+  - Date and time checks: availability, the admin and client time zones, lead-time and booking-window rules, and daylight saving changes.
+  - Link management: expiry, single use, deactivation after use, and what happens to a link when the booking is changed or cancelled.
+  - Slot claiming: confirming a picked slot must re-check availability so two clients cannot take the same time.
+  - Email: the proposal currently sends the shared "reschedule" email type, which also serves confirmed reschedules and says the meeting "has been rescheduled." A dedicated email type and wording should be considered.
+  - Calendar sync: the booking's Google Calendar event and reminders must update when a client picks a new time.
+  - Any other screen that can create proposals or links (proposal and recurring link pages).
+
 ## Recent Fixes
 
 - **Per-user data isolation (migration `20260825182310`)**: Added `user_id` columns to `bookings`, `booking_changes`, and `notification_log` with `DEFAULT auth.uid()`. Backfilled existing rows to the first admin user. Rescoped all RLS policies so authenticated admins see only their own data, while anon retains read access for public booking pages. Added `DEFAULT auth.uid()` to `admin_settings.user_id`.
