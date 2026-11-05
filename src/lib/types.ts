@@ -181,7 +181,8 @@ export type EmailTypeKey =
   | 'admin_change_notification'
   | 'admin_daily_summary'
   | 'admin_new_booking_notification'
-  | 'admin_event_notification';
+  | 'admin_event_notification'
+  | 'admin_recurring_confirmation';
 
 export interface AllEmailTemplates {
   confirmation: EmailTemplate | null;
@@ -195,6 +196,7 @@ export interface AllEmailTemplates {
   admin_daily_summary: EmailTemplate | null;
   admin_new_booking_notification: EmailTemplate | null;
   admin_event_notification: EmailTemplate | null;
+  admin_recurring_confirmation: EmailTemplate | null;
 }
 
 export interface AdminSettings {
@@ -261,6 +263,7 @@ export interface AdminSettings {
   email_admin_event_notification_enabled: boolean;
   email_admin_event_notification_template: string | null;
   email_admin_event_notification_elements: EmailElements | null;
+  email_admin_recurring_confirmation_elements: EmailElements | null;
   email_admin_event_notification_lead_hours: number;
   email_admin_daily_summary_enabled: boolean;
   email_templates_json: AllEmailTemplates | null;

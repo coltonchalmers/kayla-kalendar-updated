@@ -208,6 +208,21 @@ export const defaultEmailTemplates: AllEmailTemplates = {
       staticBlock('footer'),
     ],
   ),
+
+  admin_recurring_confirmation: makeTemplate(
+    'New recurring meeting series with {{client_name}}',
+    '{{client_name}} has booked a recurring meeting series with {{business_name}}.',
+    [
+      heading('New Recurring Meeting Series'),
+      text('{{client_name}} has booked a recurring meeting series:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDuration: {{duration}} minutes per session'),
+      spacer(8),
+      staticBlock('sessionList'),
+      spacer(8),
+      labeledBlock('clientNotes', 'Client Notes'),
+      divider(),
+      staticBlock('footer'),
+    ],
+  ),
 };
 
 export function mergeEmailTemplates(

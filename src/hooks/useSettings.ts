@@ -152,6 +152,7 @@ export function useSettings(userId?: string) {
       email_admin_event_notification_enabled: false,
       email_admin_event_notification_template: null,
       email_admin_event_notification_elements: { company_info: true, zoom: true, phone: true, google_calendar: true },
+      email_admin_recurring_confirmation_elements: { company_info: true, zoom: true, phone: true, google_calendar: true },
       email_admin_event_notification_lead_hours: 24,
       email_admin_daily_summary_enabled: false,
       email_invite_template: null,

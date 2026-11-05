@@ -44,6 +44,7 @@ interface AdminSettings {
   email_admin_event_notification_template: string | null;
   email_admin_event_notification_elements: EmailElements | null;
   email_admin_event_notification_lead_hours: number;
+  email_admin_recurring_confirmation_elements: EmailElements | null;
   email_invite_elements: EmailElements | null;
   email_confirmation_elements: EmailElements | null;
   email_cancellation_elements: EmailElements | null;
@@ -224,6 +225,17 @@ Email: {{client_email}}
 Date: {{date}}
 Time: {{time}}
 Duration: {{duration}} minutes`,
+  admin_recurring_confirmation: `New Recurring Meeting Series
+
+{{client_name}} has booked a recurring meeting series:
+
+Client: {{client_name}}
+Email: {{client_email}}
+Duration: {{duration}} minutes per session
+
+{{session_list}}
+
+Client notes: {{client_notes}}`,
   admin_daily_summary: `Daily Meeting Summary
 
 Here is a summary of all your confirmed meetings for today:
@@ -838,6 +850,7 @@ Deno.serve(async (req: Request) => {
         recurring_confirmation: settings.email_recurring_confirmation_elements,
         admin_new_booking_notification: settings.email_admin_new_booking_notification_elements,
         admin_event_notification: settings.email_admin_event_notification_elements,
+        admin_recurring_confirmation: settings.email_admin_recurring_confirmation_elements,
         admin_change_notification: settings.email_admin_change_elements,
         admin_daily_summary: null,
       };
@@ -851,6 +864,7 @@ Deno.serve(async (req: Request) => {
         recurring_confirmation: `${TEST_SUBJECT_PREFIX}[DUMMY] Your Recurring Meeting Series with ${settings.business_name}`,
         admin_new_booking_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] New Booking Confirmed with ${settings.business_name}`,
         admin_event_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] Upcoming Meeting with ${settings.business_name}`,
+        admin_recurring_confirmation: `${TEST_SUBJECT_PREFIX}[DUMMY] New Recurring Meeting Series with ${settings.business_name}`,
         admin_change_notification: `${TEST_SUBJECT_PREFIX}[DUMMY] Booking Changed by Client`,
         admin_daily_summary: `${TEST_SUBJECT_PREFIX}[DUMMY] Daily Meeting Summary`,
       };
@@ -877,7 +891,7 @@ Deno.serve(async (req: Request) => {
         templateVars.new_time = formatTime(dummyBooking.start_time);
       }
 
-      if (type === "recurring_confirmation" || type === "admin_daily_summary") {
+      if (type === "recurring_confirmation" || type === "admin_daily_summary" || type === "admin_recurring_confirmation") {
         templateVars.session_list = "1. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time) + "\n2. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
       }
 
@@ -895,7 +909,7 @@ Deno.serve(async (req: Request) => {
         new_time: type === "reschedule" ? dummyBooking.start_time : "",
       };
 
-      if (type === "recurring_confirmation" || type === "admin_daily_summary") {
+      if (type === "recurring_confirmation" || type === "admin_daily_summary" || type === "admin_recurring_confirmation") {
         dummyExtraData.session_list = [
           { date: dummyBooking.date, start_time: dummyBooking.start_time },
           { date: dummyBooking.date, start_time: dummyBooking.start_time },
@@ -1086,19 +1100,30 @@ Deno.serve(async (req: Request) => {
       if (settings.notification_enabled) {
         const adminEmail = settings.notification_email || settings.contact_email;
         if (adminEmail) {
-          const adminHtml = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-            <h2 style="color:#1f2937;">New Recurring Meeting Series</h2>
-            <p><strong>${clientName}</strong> has booked a recurring series (${bookings.length} sessions):</p>
-            <div style="white-space:pre-wrap;padding:16px;background:#f9fafb;border-radius:8px;">${sessionLines}</div>
-            <p style="margin-top:12px;">Duration: ${firstBooking.duration_minutes} minutes each</p>
-            <p style="margin-top:8px;">Client email: ${firstBooking.client_email}</p>
-            ${firstBooking.client_notes ? `<p style="margin-top:8px;">Client notes: ${firstBooking.client_notes}</p>` : ""}
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-            </div>
-          </div>`;
+          const adminElements = settings.email_admin_recurring_confirmation_elements || { company_info: true, zoom: true, phone: true, google_calendar: true };
+          const adminTextBody = fillTemplate(DEFAULT_TEMPLATES.admin_recurring_confirmation, {
+            client_name: clientName,
+            client_email: firstBooking.client_email,
+            business_name: settings.business_name,
+            duration: firstBooking.duration_minutes.toString(),
+            client_notes: firstBooking.client_notes || "",
+            session_list: sessionLines,
+          });
+          const adminRecurringData = buildEmailData(bookingWithZoom, settings, effectiveSiteUrl, effectiveZoomLink, effectiveAdminPhone || undefined, {
+            session_list: bookings.map(b => ({ date: b.date, start_time: b.start_time })),
+          });
 
-          const adminSent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, `${TEST_SUBJECT_PREFIX}New Recurring Series from ${clientName}`, adminHtml);
+          const adminRendered = await renderEmailWithFallback(
+            "admin_recurring_confirmation",
+            adminRecurringData,
+            mergedTemplates,
+            () => ({
+              html: buildEmailHtml(adminTextBody, adminElements, bookingWithZoom, settings, effectiveSiteUrl, effectiveAdminPhone || undefined),
+              subject: `${TEST_SUBJECT_PREFIX}New Recurring Series from ${clientName}`,
+            }),
+          );
+
+          const adminSent = await sendEmail(resendApiKey, fromName, fromEmail, adminEmail, adminRendered.subject, adminRendered.html);
           if (adminSent) {
             await supabase.from("notification_log").insert({
               booking_id: firstBooking.id,

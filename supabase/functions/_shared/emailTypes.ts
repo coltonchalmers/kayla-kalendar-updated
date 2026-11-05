@@ -174,7 +174,8 @@ export type EmailTypeKey =
   | 'admin_change_notification'
   | 'admin_daily_summary'
   | 'admin_new_booking_notification'
-  | 'admin_event_notification';
+  | 'admin_event_notification'
+  | 'admin_recurring_confirmation';
 
 export interface AllEmailTemplates {
   confirmation: EmailTemplate | null;
@@ -188,6 +189,7 @@ export interface AllEmailTemplates {
   admin_daily_summary: EmailTemplate | null;
   admin_new_booking_notification: EmailTemplate | null;
   admin_event_notification: EmailTemplate | null;
+  admin_recurring_confirmation: EmailTemplate | null;
 }
 
 export interface EmailElements {

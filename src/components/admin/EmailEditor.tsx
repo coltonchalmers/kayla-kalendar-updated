@@ -53,6 +53,7 @@ const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
   { value: 'admin_change_notification', label: 'Admin Change Notification' },
   { value: 'admin_new_booking_notification', label: 'Admin New Booking Notification' },
   { value: 'admin_event_notification', label: 'Admin Event Notification' },
+  { value: 'admin_recurring_confirmation', label: 'Admin Recurring Confirmation' },
   { value: 'admin_daily_summary', label: 'Admin Daily Summary' },
 ];
 
