@@ -29,6 +29,8 @@ interface AdminSettings {
   email_recurring_confirmation_enabled: boolean;
   email_change_enabled: boolean;
   email_admin_change_enabled: boolean;
+  email_admin_reschedule_enabled: boolean;
+  email_admin_cancellation_enabled: boolean;
   email_invite_template: string | null;
   email_confirmation_template: string | null;
   email_cancellation_template: string | null;
@@ -196,6 +198,22 @@ Duration: {{duration}} minutes
 {{notes_to_client}}
 
 See you soon!`,
+  admin_reschedule_notification: `Meeting with {{client_name}} has been rescheduled.
+
+Client: {{client_name}}
+Email: {{client_email}}
+
+{{change_details}}
+
+Client notes: {{client_notes}}`,
+  admin_cancellation_notification: `Meeting with {{client_name}} has been cancelled.
+
+Client: {{client_name}}
+Email: {{client_email}}
+
+{{change_details}}
+
+Client notes: {{client_notes}}`,
   admin_change_notification: `A client has made a change to their booking.
 
 Client: {{client_name}}
@@ -1165,8 +1183,12 @@ Deno.serve(async (req: Request) => {
 
       settings = await fetchSettingsForUser(supabase, booking.user_id);
       if (!settings) { return new Response(JSON.stringify({ error: "No admin settings found" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
-      if (!settings.email_admin_change_enabled) {
-        return new Response(JSON.stringify({ skipped: true, reason: "admin_change_notification disabled" }), {
+      const adminChangeKey = changeType === "rescheduled" ? "admin_reschedule_notification" : changeType === "cancelled" ? "admin_cancellation_notification" : "admin_change_notification";
+      const adminChangeEnabled = adminChangeKey === "admin_reschedule_notification" ? settings.email_admin_reschedule_enabled
+        : adminChangeKey === "admin_cancellation_notification" ? settings.email_admin_cancellation_enabled
+        : settings.email_admin_change_enabled;
+      if (!adminChangeEnabled) {
+        return new Response(JSON.stringify({ skipped: true, reason: `${adminChangeKey} disabled` }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -1195,7 +1217,7 @@ Deno.serve(async (req: Request) => {
         changeDetails = `Date: ${formatDisplayDate(booking.date)} at ${formatTime(booking.start_time)} (${booking.duration_minutes} min)`;
       }
 
-      const template = settings.email_admin_change_template || DEFAULT_TEMPLATES.admin_change_notification;
+      const template = DEFAULT_TEMPLATES[adminChangeKey];
       const mergedTemplates = mergeTemplates(settings.email_templates_json);
 
       const textBody = fillTemplate(template, {
@@ -1218,7 +1240,7 @@ Deno.serve(async (req: Request) => {
       };
 
       const { html, subject } = await renderEmailWithFallback(
-        "admin_change_notification",
+        adminChangeKey,
         adminChangeData,
         mergedTemplates,
         () => ({
@@ -1241,7 +1263,7 @@ Deno.serve(async (req: Request) => {
         user_id: booking.user_id,
         type: "email",
         status: sent ? "sent" : "failed",
-        payload: { emailType: "admin_change_notification", changeType: cType, recipient: adminEmail },
+        payload: { emailType: adminChangeKey, changeType: cType, recipient: adminEmail },
       });
 
       return new Response(JSON.stringify({ sent }), {

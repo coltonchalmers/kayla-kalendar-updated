@@ -172,6 +172,8 @@ export type EmailTypeKey =
   | 'invite'
   | 'notification'
   | 'admin_change_notification'
+  | 'admin_reschedule_notification'
+  | 'admin_cancellation_notification'
   | 'admin_daily_summary'
   | 'admin_new_booking_notification'
   | 'admin_event_notification'
@@ -186,6 +188,8 @@ export interface AllEmailTemplates {
   invite: EmailTemplate | null;
   notification: EmailTemplate | null;
   admin_change_notification: EmailTemplate | null;
+  admin_reschedule_notification: EmailTemplate | null;
+  admin_cancellation_notification: EmailTemplate | null;
   admin_daily_summary: EmailTemplate | null;
   admin_new_booking_notification: EmailTemplate | null;
   admin_event_notification: EmailTemplate | null;

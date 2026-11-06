@@ -49,6 +49,8 @@ export function mapEmailTypeToTemplateKey(emailType: string): EmailTypeKey | nul
     notification: 'notification',
     reminder: 'notification',
     admin_change_notification: 'admin_change_notification',
+    admin_reschedule_notification: 'admin_reschedule_notification',
+    admin_cancellation_notification: 'admin_cancellation_notification',
     admin_daily_summary: 'admin_daily_summary',
     admin_new_booking_notification: 'admin_new_booking_notification',
     admin_event_notification: 'admin_event_notification',

@@ -159,6 +159,32 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     ],
   ),
 
+  admin_reschedule_notification: makeTemplate(
+    'Meeting with {{client_name}} has been rescheduled',
+    'Meeting with {{client_name}} has been rescheduled.',
+    [
+      heading('Meeting Rescheduled'),
+      text('Meeting with {{client_name}} has been rescheduled.\n\nClient: {{client_name}}\nEmail: {{client_email}}'),
+      spacer(8),
+      staticBlock('changeDetails'),
+      divider(),
+      staticBlock('footer'),
+    ],
+  ),
+
+  admin_cancellation_notification: makeTemplate(
+    'Meeting with {{client_name}} has been cancelled',
+    'Meeting with {{client_name}} has been cancelled.',
+    [
+      heading('Meeting Cancelled'),
+      text('Meeting with {{client_name}} has been cancelled.\n\nClient: {{client_name}}\nEmail: {{client_email}}'),
+      spacer(8),
+      staticBlock('changeDetails'),
+      divider(),
+      staticBlock('footer'),
+    ],
+  ),
+
   admin_change_notification: makeTemplate(
     'A client has changed their booking',
     '{{client_name}} has {{change_type}} their booking.',

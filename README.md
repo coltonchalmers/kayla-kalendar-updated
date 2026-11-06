@@ -113,7 +113,7 @@ public/                        # Jungo logo assets
 
 ### Email System
 
-The app sends 9 distinct email types, each independently enabled/disabled and fully customizable:
+The app sends 11 distinct email types, each independently enabled/disabled and fully customizable:
 
 | Email Type | Trigger | Recipient |
 |-----------|---------|-----------|
@@ -124,7 +124,9 @@ The app sends 9 distinct email types, each independently enabled/disabled and fu
 | `change` | Booking details updated | Client |
 | `invite` | Admin sends proposal/recurring link | Client (contains booking link) |
 | `notification` (reminder) | Lead time before meeting | Client |
-| `admin_change_notification` | Client reschedules/cancels | Admin |
+| `admin_change_notification` | Client edits booking details (not a reschedule or cancellation) | Admin |
+| `admin_reschedule_notification` | Client reschedules booking | Admin (shows old/new times) |
+| `admin_cancellation_notification` | Client cancels booking | Admin |
 | `admin_daily_summary` | Scheduled daily (or manual) | Admin (lists today's meetings) |
 
 **Template system**: Each email type has its own text template using `{{placeholder}}` syntax. Supported placeholders: `client_name`, `business_name`, `date`, `time`, `duration`, `booking_link`, `notes_to_client`, `client_notes`, `session_list` (recurring only), `old_date`, `old_time`, `new_date`, `new_time` (reschedule only), `change_type`, `change_details`, `client_email` (admin notifications only).
