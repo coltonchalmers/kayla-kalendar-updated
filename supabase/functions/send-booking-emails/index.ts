@@ -121,6 +121,7 @@ interface TriggerOptions {
 }
 
 const TEST_SUBJECT_PREFIX = "[TEST] ";
+const CHANGE_DETAILS_TYPES = new Set(["change", "admin_change_notification", "admin_reschedule_notification", "admin_cancellation_notification"]);
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
   invite: `Hi {{client_name}},
@@ -840,11 +841,12 @@ Deno.serve(async (req: Request) => {
         id: "dummy", user_id: "", first_name: "Test", last_name: "Client", client_email: recipient,
         client_phone: null, date: new Date().toISOString().slice(0, 10),
         start_time: "10:00:00", end_time: "10:30:00", duration_minutes: 30,
-        status: "confirmed", zoom_link: "https://zoom.us/j/1234567890",
+        status: "confirmed", zoom_link: "https://zoom.us/j/1234567890", zoom_passcode: "123456",
         booking_token: "dummy-token-test",
         meeting_type_id: null, recurrence_group_id: null,
-        internal_notes: null, notes_to_client: "This is a test note to the client.", source: null,
-        meeting_location_type: "zoom",
+        internal_notes: null, notes_to_client: "This is a test note to the client.",
+        client_notes: "This is a test note from the client.", client_phone: "(555) 555-0100",
+        source: null, meeting_location_type: "zoom",
       } as Booking;
 
       const templateMap: Record<string, string | null> = {
@@ -914,7 +916,7 @@ Deno.serve(async (req: Request) => {
         templateVars.session_list = "1. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time) + "\n2. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
       }
 
-      if (type === "admin_change_notification") {
+      if (CHANGE_DETAILS_TYPES.has(type)) {
         templateVars.change_type = "rescheduled";
         templateVars.change_details = "Previous: " + formatDisplayDate(dummyBooking.date) + " at 09:00 AM\nNew: " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
       }
@@ -935,13 +937,17 @@ Deno.serve(async (req: Request) => {
         ];
       }
 
-      if (type === "admin_change_notification") {
+      if (CHANGE_DETAILS_TYPES.has(type)) {
         dummyExtraData.change_type = "rescheduled";
         dummyExtraData.change_details = templateVars.change_details;
         dummyExtraData.client_email = templateVars.client_email;
       }
 
-      const dummyData = buildEmailData(dummyBooking, settings, effectiveSiteUrl, dummyBooking.zoom_link, undefined, dummyExtraData);
+      const dummyData = buildEmailData(dummyBooking, settings, effectiveSiteUrl, dummyBooking.zoom_link, undefined, {
+        ...dummyExtraData,
+        business_contact_phone: settings.contact_phone || "(555) 555-0199",
+        business_contact_email: settings.contact_email || "hello@example.com",
+      });
 
       const { html, subject } = await renderEmailWithFallback(
         type,
