@@ -654,6 +654,7 @@ export default function SettingsPage() {
             <p className="text-sm text-gray-500 mb-4">Toggle which email types are sent. Use the editor below to customize content.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
               <div className="flex flex-col gap-3">
+                <span className="text-sm font-semibold text-gray-900">Client:</span>
                 {CLIENT_EMAIL_TOGGLES.map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-3 cursor-pointer">
                     <input
