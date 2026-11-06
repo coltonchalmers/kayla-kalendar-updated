@@ -147,6 +147,7 @@ export function useSettings(userId?: string) {
       email_admin_change_template: null,
       email_admin_change_elements: { company_info: true, zoom: true, phone: true, google_calendar: true },
       email_admin_reschedule_enabled: true,
+      email_admin_recurring_confirmation_enabled: true,
       email_admin_reschedule_elements: { company_info: true, zoom: true, phone: true, google_calendar: true },
       email_admin_cancellation_enabled: true,
       email_admin_cancellation_elements: { company_info: true, zoom: true, phone: true, google_calendar: true },

@@ -46,6 +46,7 @@ interface AdminSettings {
   email_admin_event_notification_template: string | null;
   email_admin_event_notification_elements: EmailElements | null;
   email_admin_event_notification_lead_hours: number;
+  email_admin_recurring_confirmation_enabled: boolean;
   email_admin_recurring_confirmation_elements: EmailElements | null;
   email_invite_elements: EmailElements | null;
   email_confirmation_elements: EmailElements | null;
@@ -1115,7 +1116,7 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      if (settings.notification_enabled) {
+      if (settings.notification_enabled && settings.email_admin_recurring_confirmation_enabled) {
         const adminEmail = settings.notification_email || settings.contact_email;
         if (adminEmail) {
           const adminElements = settings.email_admin_recurring_confirmation_elements || { company_info: true, zoom: true, phone: true, google_calendar: true };

@@ -24,20 +24,24 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-const EMAIL_ENABLE_TOGGLES: { key: string; label: string; settingKey: string }[] = [
+const CLIENT_EMAIL_TOGGLES: { key: string; label: string; settingKey: string }[] = [
+  { key: 'invite', label: 'Invite', settingKey: 'email_invite_enabled' },
   { key: 'confirmation', label: 'Confirmation', settingKey: 'email_confirmation_enabled' },
   { key: 'recurring_confirmation', label: 'Recurring Confirmation', settingKey: 'email_recurring_confirmation_enabled' },
-  { key: 'cancellation', label: 'Cancellation', settingKey: 'email_cancellation_enabled' },
-  { key: 'reschedule', label: 'Reschedule', settingKey: 'email_reschedule_enabled' },
-  { key: 'change', label: 'Booking Changed', settingKey: 'email_change_enabled' },
-  { key: 'invite', label: 'Invite', settingKey: 'email_invite_enabled' },
   { key: 'notification', label: 'Reminder', settingKey: 'email_notification_enabled' },
-  { key: 'admin_change_notification', label: 'Admin Change', settingKey: 'email_admin_change_enabled' },
-  { key: 'admin_reschedule_notification', label: 'Admin Reschedule', settingKey: 'email_admin_reschedule_enabled' },
-  { key: 'admin_cancellation_notification', label: 'Admin Cancellation', settingKey: 'email_admin_cancellation_enabled' },
-  { key: 'admin_new_booking_notification', label: 'Admin New Booking', settingKey: 'email_admin_new_booking_notification_enabled' },
-  { key: 'admin_event_notification', label: 'Admin Event Notification', settingKey: 'email_admin_event_notification_enabled' },
-  { key: 'admin_daily_summary', label: 'Admin Daily Summary', settingKey: 'email_admin_daily_summary_enabled' },
+  { key: 'reschedule', label: 'Reschedule Invite', settingKey: 'email_reschedule_enabled' },
+  { key: 'change', label: 'Booking Change', settingKey: 'email_change_enabled' },
+  { key: 'cancellation', label: 'Cancellation', settingKey: 'email_cancellation_enabled' },
+];
+
+const ADMIN_EMAIL_TOGGLES: { key: string; label: string; settingKey: string }[] = [
+  { key: 'admin_new_booking_notification', label: 'New Booking', settingKey: 'email_admin_new_booking_notification_enabled' },
+  { key: 'admin_recurring_confirmation', label: 'New Recurring Booking', settingKey: 'email_admin_recurring_confirmation_enabled' },
+  { key: 'admin_daily_summary', label: 'Daily Summary', settingKey: 'email_admin_daily_summary_enabled' },
+  { key: 'admin_event_notification', label: 'Reminder', settingKey: 'email_admin_event_notification_enabled' },
+  { key: 'admin_reschedule_notification', label: 'Reschedule', settingKey: 'email_admin_reschedule_enabled' },
+  { key: 'admin_change_notification', label: 'Booking Change', settingKey: 'email_admin_change_enabled' },
+  { key: 'admin_cancellation_notification', label: 'Cancellation', settingKey: 'email_admin_cancellation_enabled' },
 ];
 
 function isValidEmail(email: string): boolean {
@@ -167,6 +171,7 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [confirmResetTemplatesOpen, setConfirmResetTemplatesOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -208,6 +213,7 @@ export default function SettingsPage() {
     admin_change_notification: true,
     admin_reschedule_notification: true,
     admin_cancellation_notification: true,
+    admin_recurring_confirmation: true,
     admin_new_booking_notification: true,
     admin_event_notification: false,
     admin_daily_summary: false,
@@ -249,6 +255,7 @@ export default function SettingsPage() {
         admin_change_notification: settings.email_admin_change_enabled ?? true,
         admin_reschedule_notification: settings.email_admin_reschedule_enabled ?? true,
         admin_cancellation_notification: settings.email_admin_cancellation_enabled ?? true,
+        admin_recurring_confirmation: settings.email_admin_recurring_confirmation_enabled ?? true,
         admin_new_booking_notification: settings.email_admin_new_booking_notification_enabled ?? true,
         admin_event_notification: settings.email_admin_event_notification_enabled ?? false,
         admin_daily_summary: settings.email_admin_daily_summary_enabled ?? false,
@@ -323,6 +330,7 @@ export default function SettingsPage() {
         email_admin_change_enabled: emailEnableMap.admin_change_notification,
         email_admin_reschedule_enabled: emailEnableMap.admin_reschedule_notification,
         email_admin_cancellation_enabled: emailEnableMap.admin_cancellation_notification,
+        email_admin_recurring_confirmation_enabled: emailEnableMap.admin_recurring_confirmation,
         email_admin_new_booking_notification_enabled: emailEnableMap.admin_new_booking_notification,
         email_admin_event_notification_enabled: emailEnableMap.admin_event_notification,
         email_admin_daily_summary_enabled: emailEnableMap.admin_daily_summary,
@@ -644,18 +652,34 @@ export default function SettingsPage() {
           <Card>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Email Types</h2>
             <p className="text-sm text-gray-500 mb-4">Toggle which email types are sent. Use the editor below to customize content.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {EMAIL_ENABLE_TOGGLES.map(({ key, label, settingKey }) => (
-                <label key={key} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={emailEnableMap[key] ?? true}
-                    onChange={e => setEmailEnableMap(prev => ({ ...prev, [key]: e.target.checked }))}
-                    className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">{label}</span>
-                </label>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+              <div className="flex flex-col gap-3">
+                {CLIENT_EMAIL_TOGGLES.map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={emailEnableMap[key] ?? true}
+                      onChange={e => setEmailEnableMap(prev => ({ ...prev, [key]: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex flex-col gap-3">
+                <span className="text-sm font-semibold text-gray-900">Admin:</span>
+                {ADMIN_EMAIL_TOGGLES.map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={emailEnableMap[key] ?? true}
+                      onChange={e => setEmailEnableMap(prev => ({ ...prev, [key]: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </Card>
 
@@ -676,6 +700,42 @@ export default function SettingsPage() {
                 : 'Log in to enable test emails.'}
             </span>
           </div>
+
+          {/* Reset All Templates */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={() => setConfirmResetTemplatesOpen(true)}
+            >
+              Reset All Email Templates
+            </Button>
+            <span className="text-xs text-gray-400">Restores every email&apos;s subject, wording, and layout to the defaults.</span>
+          </div>
+
+          <Modal open={confirmResetTemplatesOpen} onClose={() => setConfirmResetTemplatesOpen(false)} title="Reset All Email Templates" maxWidth="sm">
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Every email template will be replaced with its default subject line, wording, and layout. All of your custom email text and layout changes will be lost.
+              </p>
+              <p className="text-sm text-gray-600">
+                Your on/off switches and other settings are not affected. The reset is not final until you click Save Settings.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => setConfirmResetTemplatesOpen(false)}>Cancel</Button>
+                <Button
+                  variant="danger"
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  onClick={() => {
+                    setEmailTemplatesJson(defaultEmailTemplates);
+                    setConfirmResetTemplatesOpen(false);
+                  }}
+                >
+                  Yes, Reset All Templates
+                </Button>
+              </div>
+            </div>
+          </Modal>
 
           {/* Editor + Preview */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

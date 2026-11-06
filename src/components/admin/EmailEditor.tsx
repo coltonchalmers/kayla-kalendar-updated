@@ -16,12 +16,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2, Plus } from 'lucide-react';
+import { GripVertical, Pencil, Trash2, Plus, RotateCcw } from 'lucide-react';
 import Select from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { defaultEmailTemplates } from '@/lib/emailDefaults';
 import type {
   AllEmailTemplates,
   EmailTypeKey,
@@ -43,20 +44,20 @@ import type {
 } from '@/lib/types';
 
 const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
-  { value: 'confirmation', label: 'Confirmation Email' },
-  { value: 'recurring_confirmation', label: 'Recurring Confirmation Email' },
-  { value: 'cancellation', label: 'Cancellation Email' },
-  { value: 'reschedule', label: 'Reschedule Email' },
-  { value: 'change', label: 'Booking Changed Email' },
-  { value: 'invite', label: 'Invite Email' },
-  { value: 'notification', label: 'Reminder Email' },
-  { value: 'admin_change_notification', label: 'Admin Change' },
-  { value: 'admin_reschedule_notification', label: 'Admin Reschedule' },
-  { value: 'admin_cancellation_notification', label: 'Admin Cancellation' },
-  { value: 'admin_new_booking_notification', label: 'Admin New Booking Notification' },
-  { value: 'admin_event_notification', label: 'Admin Event Notification' },
-  { value: 'admin_recurring_confirmation', label: 'Admin Recurring Confirmation' },
+  { value: 'invite', label: 'Invite' },
+  { value: 'confirmation', label: 'Confirmation' },
+  { value: 'recurring_confirmation', label: 'Recurring Confirmation' },
+  { value: 'notification', label: 'Reminder' },
+  { value: 'reschedule', label: 'Reschedule Invite' },
+  { value: 'change', label: 'Booking Change' },
+  { value: 'cancellation', label: 'Cancellation' },
+  { value: 'admin_new_booking_notification', label: 'Admin New Booking' },
+  { value: 'admin_recurring_confirmation', label: 'Admin New Recurring Booking' },
   { value: 'admin_daily_summary', label: 'Admin Daily Summary' },
+  { value: 'admin_event_notification', label: 'Admin Reminder' },
+  { value: 'admin_reschedule_notification', label: 'Admin Reschedule' },
+  { value: 'admin_change_notification', label: 'Admin Booking Change' },
+  { value: 'admin_cancellation_notification', label: 'Admin Cancellation' },
 ];
 
 const COMPONENT_LABELS: Record<EmailComponentType, string> = {
@@ -190,6 +191,13 @@ export default function EmailEditor({ templates, onChange, selectedKey, onSelect
   const [editingComponent, setEditingComponent] = useState<EmailComponent | null>(null);
 
   const selectedTemplate = templates[selectedKey]!;
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const selectedLabel = EMAIL_TYPE_OPTIONS.find((o) => o.value === selectedKey)?.label ?? selectedKey;
+
+  const handleResetTemplate = () => {
+    onChange({ ...templates, [selectedKey]: defaultEmailTemplates[selectedKey] });
+    setConfirmResetOpen(false);
+  };
   const components = selectedTemplate.component.children ?? [];
 
   const sensors = useSensors(
@@ -260,6 +268,27 @@ export default function EmailEditor({ templates, onChange, selectedKey, onSelect
         onChange={(e) => onSelectedKeyChange(e.target.value as EmailTypeKey)}
         options={EMAIL_TYPE_OPTIONS}
       />
+
+      <div className="-mt-2 flex justify-end">
+        <Button variant="outline" size="sm" icon={<RotateCcw className="w-3.5 h-3.5" />} onClick={() => setConfirmResetOpen(true)}>
+          Reset Template
+        </Button>
+      </div>
+
+      <Modal open={confirmResetOpen} onClose={() => setConfirmResetOpen(false)} title="Reset this email template?" maxWidth="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            The <strong>{selectedLabel}</strong> email will go back to its default subject line, wording, and layout. Every change you have made to this template will be replaced.
+          </p>
+          <p className="text-sm text-gray-600">
+            The reset is not final until you click Save Settings. Closing this window without resetting keeps your current template.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setConfirmResetOpen(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleResetTemplate} icon={<RotateCcw className="w-4 h-4" />}>Yes, Reset Template</Button>
+          </div>
+        </div>
+      </Modal>
 
       <div className="grid grid-cols-1 gap-4">
         <Input

@@ -260,6 +260,7 @@ export interface AdminSettings {
   email_change_elements: EmailElements | null;
   email_admin_change_enabled: boolean;
   email_admin_reschedule_enabled: boolean;
+  email_admin_recurring_confirmation_enabled: boolean;
   email_admin_cancellation_enabled: boolean;
   email_admin_change_template: string | null;
   email_admin_change_elements: EmailElements | null;

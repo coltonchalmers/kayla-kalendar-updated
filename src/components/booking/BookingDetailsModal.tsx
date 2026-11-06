@@ -31,10 +31,10 @@ type EmailTypeOption = 'confirmation' | 'reschedule' | 'cancellation' | 'reminde
 
 const EMAIL_TYPE_OPTIONS: { value: EmailTypeOption; label: string }[] = [
   { value: 'confirmation', label: 'Confirmation' },
-  { value: 'reschedule', label: 'Reschedule' },
-  { value: 'cancellation', label: 'Cancellation' },
-  { value: 'reminder', label: 'Reminder' },
   { value: 'recurring_confirmation', label: 'Recurring Confirmation' },
+  { value: 'reminder', label: 'Reminder' },
+  { value: 'reschedule', label: 'Reschedule Invite' },
+  { value: 'cancellation', label: 'Cancellation' },
 ];
 
 export default function BookingDetailsModal({ booking, open, onClose }: Props) {
