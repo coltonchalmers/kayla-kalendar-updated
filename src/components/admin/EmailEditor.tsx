@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2, Plus, RotateCcw } from 'lucide-react';
+import EmailPlaceholderPicker from '@/components/admin/EmailPlaceholderPicker';
 import Select from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
@@ -357,6 +358,7 @@ export default function EmailEditor({ templates, onChange, selectedKey, onSelect
       {editingComponent && (
         <ComponentEditModal
           component={editingComponent}
+          emailType={selectedKey}
           onClose={() => setEditingComponent(null)}
           onSave={handleSaveComponent}
         />
@@ -423,10 +425,12 @@ function SortableItem({
 
 function ComponentEditModal({
   component,
+  emailType,
   onClose,
   onSave,
 }: {
   component: EmailComponent;
+  emailType: EmailTypeKey;
   onClose: () => void;
   onSave: (updated: EmailComponent) => void;
 }) {
@@ -438,6 +442,10 @@ function ComponentEditModal({
 
   const update = (key: string, value: unknown) => {
     setProps((prev) => ({ ...prev, [key]: value }) as EmailComponentProps);
+  };
+
+  const insertPlaceholder = (token: string) => {
+    update('text', `${(props as { text?: string }).text ?? ''}${token}`);
   };
 
   const label = COMPONENT_LABELS[component.type];
@@ -461,6 +469,7 @@ function ComponentEditModal({
                 value={(props as HeadingProps).text}
                 onChange={(e) => update('text', e.target.value)}
               />
+              <EmailPlaceholderPicker emailType={emailType} onInsert={insertPlaceholder} />
               <Select
                 label="Heading Level"
                 value={String((props as HeadingProps).level ?? 1)}
@@ -483,6 +492,7 @@ function ComponentEditModal({
                 value={(props as TextProps).text}
                 onChange={(e) => update('text', e.target.value)}
               />
+              <EmailPlaceholderPicker emailType={emailType} onInsert={insertPlaceholder} />
               <StyleFields values={props} onChange={update} colors={{ textColor: '#1F2937' }} alignDefault="left" />
             </>
           )}
@@ -494,6 +504,7 @@ function ComponentEditModal({
                 value={(props as ButtonProps).text}
                 onChange={(e) => update('text', e.target.value)}
               />
+              <EmailPlaceholderPicker emailType={emailType} onInsert={insertPlaceholder} />
               <Input
                 label="Link URL"
                 value={(props as ButtonProps).href}
