@@ -12,7 +12,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Select from '@/components/ui/Select';
 import { classNames, getTimezoneOptions } from '@/lib/utils';
 import Modal from '@/components/ui/Modal';
-import EmailEditor from '@/components/admin/EmailEditor';
+import EmailEditor, { EMAIL_TYPE_OPTIONS } from '@/components/admin/EmailEditor';
 import { EmailPreview } from '@/components/admin/EmailPreview';
 import type { AllEmailTemplates, EmailTypeKey } from '@/lib/types';
 
@@ -29,7 +29,7 @@ const CLIENT_EMAIL_TOGGLES: { key: string; label: string; settingKey: string }[]
   { key: 'confirmation', label: 'Confirmation', settingKey: 'email_confirmation_enabled' },
   { key: 'recurring_confirmation', label: 'Recurring Confirmation', settingKey: 'email_recurring_confirmation_enabled' },
   { key: 'notification', label: 'Reminder', settingKey: 'email_notification_enabled' },
-  { key: 'reschedule', label: 'Reschedule Invite', settingKey: 'email_reschedule_enabled' },
+  { key: 'reschedule', label: 'Reschedule', settingKey: 'email_reschedule_enabled' },
   { key: 'change', label: 'Booking Change', settingKey: 'email_change_enabled' },
   { key: 'cancellation', label: 'Cancellation', settingKey: 'email_cancellation_enabled' },
 ];
@@ -697,7 +697,7 @@ export default function SettingsPage() {
             </Button>
             <span className="text-xs text-gray-400">
               {user?.email
-                ? `Sends a test of the "${selectedEmailKey.replace(/_/g, ' ')}" email to ${user.email} with placeholder data.`
+                ? `Sends a test of the "${EMAIL_TYPE_OPTIONS.find(o => o.value === selectedEmailKey)?.label ?? selectedEmailKey}" email to ${user.email} with placeholder data.`
                 : 'Log in to enable test emails.'}
             </span>
           </div>

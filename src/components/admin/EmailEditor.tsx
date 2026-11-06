@@ -43,12 +43,12 @@ import type {
   ManageBookingLinkProps,
 } from '@/lib/types';
 
-const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
+export const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
   { value: 'invite', label: 'Invite' },
   { value: 'confirmation', label: 'Confirmation' },
   { value: 'recurring_confirmation', label: 'Recurring Confirmation' },
   { value: 'notification', label: 'Reminder' },
-  { value: 'reschedule', label: 'Reschedule Invite' },
+  { value: 'reschedule', label: 'Reschedule' },
   { value: 'change', label: 'Booking Change' },
   { value: 'cancellation', label: 'Cancellation' },
   { value: 'admin_new_booking_notification', label: 'Admin New Booking' },

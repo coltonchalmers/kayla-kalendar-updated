@@ -33,7 +33,7 @@ const EMAIL_TYPE_OPTIONS: { value: EmailTypeOption; label: string }[] = [
   { value: 'confirmation', label: 'Confirmation' },
   { value: 'recurring_confirmation', label: 'Recurring Confirmation' },
   { value: 'reminder', label: 'Reminder' },
-  { value: 'reschedule', label: 'Reschedule Invite' },
+  { value: 'reschedule', label: 'Reschedule' },
   { value: 'cancellation', label: 'Cancellation' },
 ];
 
