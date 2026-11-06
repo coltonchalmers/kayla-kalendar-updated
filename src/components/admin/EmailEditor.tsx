@@ -41,6 +41,7 @@ import type {
   NotesToClientProps,
   ClientNotesProps,
   ManageBookingLinkProps,
+  BookingDetailsProps,
 } from '@/lib/types';
 
 export const EMAIL_TYPE_OPTIONS: { value: EmailTypeKey; label: string }[] = [
@@ -81,6 +82,7 @@ const COMPONENT_LABELS: Record<EmailComponentType, string> = {
   sessionList: 'Session List Block',
   rescheduleDetails: 'Reschedule Details Block',
   changeDetails: 'Change Details Block',
+  bookingDetails: 'Booking Details Block',
 };
 
 const ALIGNMENT_OPTIONS = [
@@ -108,17 +110,10 @@ const ADDABLE_BLOCKS: { type: EmailComponentType; label: string; group: string }
   { type: 'sessionList', label: 'Add Session List', group: 'Dynamic Data' },
   { type: 'rescheduleDetails', label: 'Add Reschedule Details', group: 'Dynamic Data' },
   { type: 'changeDetails', label: 'Add Change Details', group: 'Dynamic Data' },
+  { type: 'bookingDetails', label: 'Add Booking Details', group: 'Dynamic Data' },
 ];
 
-const STATIC_COMPONENT_TYPES: EmailComponentType[] = [
-  'zoom',
-  'phoneContact',
-  'googleCalendar',
-  'footer',
-  'sessionList',
-  'rescheduleDetails',
-  'changeDetails',
-];
+const STATIC_COMPONENT_TYPES: EmailComponentType[] = ['footer', 'sessionList'];
 
 function createDefaultComponent(type: EmailComponentType): EmailComponent {
   const id = crypto.randomUUID();
@@ -147,6 +142,8 @@ function createDefaultComponent(type: EmailComponentType): EmailComponent {
       return { ...base, props: { type: 'clientNotes', label: 'Client Notes' } };
     case 'manageBookingLink':
       return { ...base, props: { type: 'manageBookingLink', text: 'Manage Your Booking', buttonColor: '#059669' } };
+    case 'bookingDetails':
+      return { ...base, props: { type: 'bookingDetails', label: 'Booking Details' } };
     default:
       return base;
   }
@@ -474,12 +471,7 @@ function ComponentEditModal({
                   { value: '3', label: 'H3 — Small' },
                 ]}
               />
-              <Select
-                label="Alignment"
-                value={(props as HeadingProps).textAlign ?? 'left'}
-                onChange={(e) => update('textAlign', e.target.value as TextAlign)}
-                options={ALIGNMENT_OPTIONS}
-              />
+              <StyleFields values={props} onChange={update} colors={{ textColor: '#6A4E3E' }} alignDefault="left" />
             </>
           )}
 
@@ -491,12 +483,7 @@ function ComponentEditModal({
                 value={(props as TextProps).text}
                 onChange={(e) => update('text', e.target.value)}
               />
-              <Select
-                label="Alignment"
-                value={(props as TextProps).textAlign ?? 'left'}
-                onChange={(e) => update('textAlign', e.target.value as TextAlign)}
-                options={ALIGNMENT_OPTIONS}
-              />
+              <StyleFields values={props} onChange={update} colors={{ textColor: '#1F2937' }} alignDefault="left" />
             </>
           )}
 
@@ -513,26 +500,7 @@ function ComponentEditModal({
                 onChange={(e) => update('href', e.target.value)}
                 placeholder="https://..."
               />
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Button Color"
-                  type="color"
-                  value={(props as ButtonProps).buttonColor ?? '#059669'}
-                  onChange={(e) => update('buttonColor', e.target.value)}
-                />
-                <Input
-                  label="Text Color"
-                  type="color"
-                  value={(props as ButtonProps).textColor ?? '#FFFFFF'}
-                  onChange={(e) => update('textColor', e.target.value)}
-                />
-              </div>
-              <Select
-                label="Alignment"
-                value={(props as ButtonProps).textAlign ?? 'left'}
-                onChange={(e) => update('textAlign', e.target.value as TextAlign)}
-                options={ALIGNMENT_OPTIONS}
-              />
+              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#059669', textColor: '#FFFFFF' }} alignDefault="left" />
             </>
           )}
 
@@ -642,12 +610,63 @@ function ComponentEditModal({
                 value={(props as ManageBookingLinkProps).text ?? ''}
                 onChange={(e) => update('text', e.target.value)}
               />
+              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#059669', textColor: '#FFFFFF' }} alignDefault="center" />
+            </>
+          )}
+
+          {component.type === 'googleCalendar' && (
+            <StyleFields values={props} onChange={update} colors={{ buttonColor: '#1A73E8', textColor: '#FFFFFF' }} alignDefault="left" />
+          )}
+
+          {component.type === 'zoom' && (
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F0FDF4', textColor: '#166534' }} />
+          )}
+
+          {component.type === 'phoneContact' && (
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F8FAFC', textColor: '#374151' }} />
+          )}
+
+          {component.type === 'notesToClient' && (
+            <>
               <Input
-                label="Button Color"
-                type="color"
-                value={(props as ManageBookingLinkProps).buttonColor ?? '#059669'}
-                onChange={(e) => update('buttonColor', e.target.value)}
+                label="Label"
+                value={(props as NotesToClientProps).label ?? ''}
+                onChange={(e) => update('label', e.target.value)}
+                placeholder="Notes"
               />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+            </>
+          )}
+
+          {component.type === 'clientNotes' && (
+            <>
+              <Input
+                label="Label"
+                value={(props as ClientNotesProps).label ?? ''}
+                onChange={(e) => update('label', e.target.value)}
+                placeholder="Client Notes"
+              />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+            </>
+          )}
+
+          {component.type === 'rescheduleDetails' && (
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB' }} />
+          )}
+
+          {component.type === 'changeDetails' && (
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+          )}
+
+          {component.type === 'bookingDetails' && (
+            <>
+              <Input
+                label="Title"
+                value={(props as BookingDetailsProps).label ?? ''}
+                onChange={(e) => update('label', e.target.value)}
+                placeholder="Booking Details"
+              />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
             </>
           )}
         </div>
@@ -658,5 +677,53 @@ function ComponentEditModal({
         {!isStatic && <Button onClick={handleSave}>Save Changes</Button>}
       </div>
     </Modal>
+  );
+}
+
+const STYLE_FIELD_LABELS = {
+  textColor: 'Text Color',
+  buttonColor: 'Button Color',
+  backgroundColor: 'Background Color',
+} as const;
+
+type StyleField = keyof typeof STYLE_FIELD_LABELS;
+
+function StyleFields({
+  values,
+  onChange,
+  colors,
+  alignDefault,
+}: {
+  values: object;
+  onChange: (key: string, value: unknown) => void;
+  colors: Partial<Record<StyleField, string>>;
+  alignDefault?: TextAlign;
+}) {
+  const current = values as Record<string, unknown>;
+  const colorKeys = Object.keys(colors) as StyleField[];
+  return (
+    <>
+      {colorKeys.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          {colorKeys.map((key) => (
+            <Input
+              key={key}
+              label={STYLE_FIELD_LABELS[key]}
+              type="color"
+              value={(current[key] as string | undefined) ?? colors[key] ?? '#000000'}
+              onChange={(e) => onChange(key, e.target.value)}
+            />
+          ))}
+        </div>
+      )}
+      {alignDefault && (
+        <Select
+          label="Alignment"
+          value={(current.textAlign as string | undefined) ?? alignDefault}
+          onChange={(e) => onChange('textAlign', e.target.value as TextAlign)}
+          options={ALIGNMENT_OPTIONS}
+        />
+      )}
+    </>
   );
 }

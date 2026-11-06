@@ -432,6 +432,11 @@ function buildEmailData(
     admin_timezone: adminTz,
     client_timezone: displayTz,
     client_email: booking.client_email || "",
+    client_status: booking.is_existing_client === null || booking.is_existing_client === undefined
+      ? ""
+      : booking.is_existing_client ? "Existing client" : "New client",
+    meeting_location: booking.meeting_location_type === "phone" ? "Phone call" : booking.meeting_location_type === "zoom" ? "Zoom" : "",
+    guests: Array.isArray(booking.guests) ? booking.guests.join(", ") : "",
     ...extra,
   };
 }
@@ -846,6 +851,7 @@ Deno.serve(async (req: Request) => {
         meeting_type_id: null, recurrence_group_id: null,
         internal_notes: null, notes_to_client: "This is a test note to the client.",
         client_notes: "This is a test note from the client.", client_phone: "(555) 555-0100",
+        is_existing_client: false, guests: ["sam.guest@example.com"],
         source: null, meeting_location_type: "zoom",
       } as Booking;
 

@@ -18,7 +18,8 @@ export type EmailComponentType =
   | 'footer'
   | 'sessionList'
   | 'rescheduleDetails'
-  | 'changeDetails';
+  | 'changeDetails'
+  | 'bookingDetails';
 
 export type TextAlign = 'left' | 'center' | 'right';
 
@@ -27,12 +28,14 @@ export interface HeadingProps {
   text: string;
   level?: 1 | 2 | 3;
   textAlign?: TextAlign;
+  textColor?: string;
 }
 
 export interface TextProps {
   type: 'text';
   text: string;
   textAlign?: TextAlign;
+  textColor?: string;
 }
 
 export interface ButtonProps {
@@ -85,30 +88,43 @@ export interface HtmlProps {
 
 export interface ZoomProps {
   type: 'zoom';
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export interface PhoneContactProps {
   type: 'phoneContact';
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export interface GoogleCalendarProps {
   type: 'googleCalendar';
+  buttonColor?: string;
+  textColor?: string;
+  textAlign?: TextAlign;
 }
 
 export interface NotesToClientProps {
   type: 'notesToClient';
   label?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export interface ClientNotesProps {
   type: 'clientNotes';
   label?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export interface ManageBookingLinkProps {
   type: 'manageBookingLink';
   text?: string;
   buttonColor?: string;
+  textColor?: string;
+  textAlign?: TextAlign;
 }
 
 export interface FooterProps {
@@ -121,10 +137,20 @@ export interface SessionListProps {
 
 export interface RescheduleDetailsProps {
   type: 'rescheduleDetails';
+  backgroundColor?: string;
 }
 
 export interface ChangeDetailsProps {
   type: 'changeDetails';
+  backgroundColor?: string;
+  textColor?: string;
+}
+
+export interface BookingDetailsProps {
+  type: 'bookingDetails';
+  label?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export type EmailComponentProps =
@@ -147,7 +173,8 @@ export type EmailComponentProps =
   | FooterProps
   | SessionListProps
   | RescheduleDetailsProps
-  | ChangeDetailsProps;
+  | ChangeDetailsProps
+  | BookingDetailsProps;
 
 export interface EmailComponent {
   id: string;
