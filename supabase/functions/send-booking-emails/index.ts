@@ -137,8 +137,8 @@ We look forward to seeing you there.`,
 
 Your meeting with {{business_name}} has been confirmed.
 
-Date: {{date}}
-Time: {{time}}
+Date: {{client_date}}
+Time: {{client_time}}
 Duration: {{duration}} minutes
 
 {{notes_to_client}}
@@ -146,7 +146,7 @@ Duration: {{duration}} minutes
 Need to cancel or reschedule? Use the links below.`,
   cancellation: `Hi {{client_name}},
 
-Your meeting with {{business_name}} scheduled for {{date}} at {{time}} has been cancelled.
+Your meeting with {{business_name}} scheduled for {{client_date}} at {{client_time}} has been cancelled.
 
 {{notes_to_client}}
 
@@ -169,8 +169,8 @@ Need to make another change? Use the links below.`,
 
 Your meeting details with {{business_name}} have been updated.
 
-Date: {{date}}
-Time: {{time}}
+Date: {{client_date}}
+Time: {{client_time}}
 Duration: {{duration}} minutes
 
 {{notes_to_client}}
@@ -193,8 +193,8 @@ Need to cancel or reschedule a session? Use the link below.`,
 
 This is a reminder for your upcoming meeting with {{business_name}}.
 
-Date: {{date}}
-Time: {{time}}
+Date: {{client_date}}
+Time: {{client_time}}
 Duration: {{duration}} minutes
 
 {{notes_to_client}}
@@ -231,8 +231,8 @@ A new meeting has been booked:
 
 Client: {{client_name}}
 Email: {{client_email}}
-Date: {{date}}
-Time: {{time}}
+Client time: {{client_date}} at {{client_time}}
+Your time: {{admin_date}} at {{admin_time}}
 Duration: {{duration}} minutes
 
 Client notes: {{client_notes}}`,
@@ -242,8 +242,8 @@ You have an upcoming meeting:
 
 Client: {{client_name}}
 Email: {{client_email}}
-Date: {{date}}
-Time: {{time}}
+Client time: {{client_date}} at {{client_time}}
+Your time: {{admin_date}} at {{admin_time}}
 Duration: {{duration}} minutes`,
   admin_recurring_confirmation: `New Recurring Meeting Series
 
@@ -400,6 +400,21 @@ function formatBookingTime(booking: Booking, adminTz: string): string {
   return formatTime(converted.time);
 }
 
+function buildDateTimeFields(booking: Booking, adminTz: string): Record<string, string> {
+  const clientDate = booking.date ? formatBookingDate(booking, adminTz) : "";
+  const clientTime = booking.start_time ? formatBookingTime(booking, adminTz) : "";
+  const adminDate = booking.date ? formatDisplayDate(booking.date) : "";
+  const adminTime = booking.start_time ? formatTime(booking.start_time) : "";
+  return {
+    date: clientDate,
+    time: clientTime,
+    client_date: clientDate,
+    client_time: clientTime,
+    admin_date: adminDate,
+    admin_time: adminTime,
+  };
+}
+
 function buildEmailData(
   booking: Booking,
   settings: AdminSettings,
@@ -410,16 +425,13 @@ function buildEmailData(
 ): Record<string, any> {
   const adminTz = settings.timezone || "America/New_York";
   const displayTz = getDisplayTimezone(booking, adminTz);
-  const dateDisplay = booking.date ? formatBookingDate(booking, adminTz) : "";
-  const timeDisplay = booking.start_time ? formatBookingTime(booking, adminTz) : "";
   const manageLink = booking.booking_token ? buildManageLink(booking.booking_token, publicSiteUrl) : "";
   const calLink = booking.date && booking.start_time ? buildGoogleCalendarLink(booking, settings) : "";
 
   return {
     client_name: `${booking.first_name} ${booking.last_name}`,
     business_name: settings.business_name,
-    date: dateDisplay,
-    time: timeDisplay,
+    ...buildDateTimeFields(booking, adminTz),
     duration: booking.duration_minutes.toString(),
     zoom_link: effectiveZoomLink || "",
     zoom_passcode: (booking as any).zoom_passcode || "",
@@ -609,8 +621,7 @@ async function sendImmediateReminderIfNeeded(
   const textBody = fillTemplate(template, {
     client_name: `${booking.first_name} ${booking.last_name}`,
     business_name: settings.business_name,
-    date: formatBookingDate(booking, adminTz),
-    time: formatBookingTime(booking, adminTz),
+    ...buildDateTimeFields(booking, adminTz),
     duration: booking.duration_minutes.toString(),
     notes_to_client: booking.notes_to_client || "",
   });
@@ -665,9 +676,6 @@ async function sendAdminNewBookingNotification(
 
     const clientName = `${booking.first_name} ${booking.last_name}`;
     const adminTz = settings.timezone || "America/New_York";
-    const dateDisplay = booking.date ? formatBookingDate(booking, adminTz) : "";
-    const timeDisplay = booking.start_time ? formatBookingTime(booking, adminTz) : "";
-
     const template = settings.email_admin_new_booking_notification_template || DEFAULT_TEMPLATES.admin_new_booking_notification;
     const elements = settings.email_admin_new_booking_notification_elements || { company_info: true, zoom: true, phone: true, google_calendar: true };
     const mergedTemplates = mergeTemplates(settings.email_templates_json);
@@ -676,8 +684,7 @@ async function sendAdminNewBookingNotification(
       client_name: clientName,
       client_email: booking.client_email,
       business_name: settings.business_name,
-      date: dateDisplay,
-      time: timeDisplay,
+      ...buildDateTimeFields(booking, adminTz),
       duration: booking.duration_minutes.toString(),
       client_notes: booking.client_notes || "",
     });
@@ -855,7 +862,10 @@ Deno.serve(async (req: Request) => {
         client_notes: "This is a test note from the client.", client_phone: "(555) 555-0100",
         is_existing_client: false, guests: ["sam.guest@example.com"],
         source: null, meeting_location_type: "zoom",
+        client_timezone: "Europe/London",
       } as Booking;
+
+      const dummyDateTime = buildDateTimeFields(dummyBooking, settings.timezone || "America/New_York");
 
       const templateMap: Record<string, string | null> = {
         confirmation: settings.email_confirmation_template,
@@ -905,8 +915,7 @@ Deno.serve(async (req: Request) => {
       const templateVars: Record<string, string> = {
         client_name: "Test Client",
         business_name: settings.business_name,
-        date: formatDisplayDate(dummyBooking.date),
-        time: formatTime(dummyBooking.start_time),
+        ...dummyDateTime,
         duration: "30",
         client_notes: "This is a test note from the client.",
         notes_to_client: "This is a test note to the client.",
@@ -921,12 +930,12 @@ Deno.serve(async (req: Request) => {
       }
 
       if (type === "recurring_confirmation" || type === "admin_daily_summary" || type === "admin_recurring_confirmation") {
-        templateVars.session_list = "1. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time) + "\n2. " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
+        templateVars.session_list = `1. ${dummyDateTime.client_date} at ${dummyDateTime.client_time}\n2. ${dummyDateTime.client_date} at ${dummyDateTime.client_time}`;
       }
 
       if (CHANGE_DETAILS_TYPES.has(type)) {
         templateVars.change_type = "rescheduled";
-        templateVars.change_details = "Previous: " + formatDisplayDate(dummyBooking.date) + " at 09:00 AM\nNew: " + formatDisplayDate(dummyBooking.date) + " at " + formatTime(dummyBooking.start_time);
+        templateVars.change_details = `Previous: ${dummyDateTime.client_date} at 09:00 AM\nNew: ${dummyDateTime.client_date} at ${dummyDateTime.client_time}`;
       }
 
       const textBody = fillTemplate(template, templateVars);
@@ -1354,8 +1363,7 @@ Deno.serve(async (req: Request) => {
       const textBody = fillTemplate(template, {
         client_name: clientName,
         business_name: settings.business_name,
-        date: dateDisplay,
-        time: timeDisplay,
+        ...buildDateTimeFields(booking, adminTz),
         duration: booking.duration_minutes.toString(),
         notes_to_client: booking.notes_to_client || "",
       });
@@ -1477,8 +1485,7 @@ Deno.serve(async (req: Request) => {
     const templateVars: Record<string, string> = {
       client_name: clientName,
       business_name: settings.business_name,
-      date: dateDisplay,
-      time: timeDisplay,
+      ...buildDateTimeFields(booking, adminTz),
       duration: booking.duration_minutes.toString(),
       client_notes: booking.client_notes || "",
       notes_to_client: booking.notes_to_client || "",

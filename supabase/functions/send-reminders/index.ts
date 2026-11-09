@@ -109,8 +109,8 @@ const DEFAULT_REMINDER_TEMPLATE = `Hi {{client_name}},
 
 This is a reminder for your upcoming meeting with {{business_name}}.
 
-Date: {{date}}
-Time: {{time}}
+Client time: {{client_date}} at {{client_time}}
+Your time: {{admin_date}} at {{admin_time}}
 Duration: {{duration}} minutes
 
 See you soon!`;
@@ -119,8 +119,8 @@ const DEFAULT_ADMIN_EVENT_TEMPLATE = `You have an upcoming meeting:
 
 Client: {{client_name}}
 Email: {{client_email}}
-Date: {{date}}
-Time: {{time}}
+Client time: {{client_date}} at {{client_time}}
+Your time: {{admin_date}} at {{admin_time}}
 Duration: {{duration}} minutes`;
 
 function getTzOffsetMs(date: Date, tz: string): number {
@@ -314,6 +314,21 @@ function buildDailySummaryHtml(bookings: Booking[], settings: AdminSettings, tar
   </div>`;
 }
 
+function buildDateTimeFields(booking: Booking, adminTz: string): Record<string, string> {
+  const clientDate = booking.date ? formatBookingDate(booking, adminTz) : "";
+  const clientTime = booking.start_time ? formatBookingTime(booking, adminTz) : "";
+  const adminDate = booking.date ? formatDisplayDate(booking.date) : "";
+  const adminTime = booking.start_time ? formatTime(booking.start_time) : "";
+  return {
+    date: clientDate,
+    time: clientTime,
+    client_date: clientDate,
+    client_time: clientTime,
+    admin_date: adminDate,
+    admin_time: adminTime,
+  };
+}
+
 function buildEmailData(
   booking: Booking,
   settings: AdminSettings,
@@ -326,15 +341,12 @@ function buildEmailData(
   const displayTz = booking.client_timezone && booking.client_timezone !== adminTz
     ? booking.client_timezone
     : adminTz;
-  const dateDisplay = booking.date ? formatBookingDate(booking, adminTz) : "";
-  const timeDisplay = booking.start_time ? formatBookingTime(booking, adminTz) : "";
   const manageLink = booking.booking_token ? `${siteUrl}/manage/${booking.booking_token}?action=reschedule` : "";
 
   return {
     client_name: `${booking.first_name} ${booking.last_name}`,
     business_name: settings.business_name,
-    date: dateDisplay,
-    time: timeDisplay,
+    ...buildDateTimeFields(booking, adminTz),
     duration: booking.duration_minutes.toString(),
     zoom_link: effectiveZoomLink || "",
     zoom_passcode: booking.zoom_passcode || "",
@@ -465,8 +477,7 @@ Deno.serve(async (req: Request) => {
                 const textBody = fillTemplate(template, {
                   client_name: `${booking.first_name} ${booking.last_name}`,
                   business_name: settings.business_name,
-                  date: formatBookingDate(booking, adminTz),
-                  time: formatBookingTime(booking, adminTz),
+                  ...buildDateTimeFields(booking, adminTz),
                   duration: booking.duration_minutes.toString(),
                 });
 
@@ -572,16 +583,12 @@ Deno.serve(async (req: Request) => {
                   }
                   const bookingWithZoom = { ...booking, zoom_link: effectiveZoomLink };
 
-                  const dateDisplay = formatBookingDate(bookingWithZoom, adminTz);
-                  const timeDisplay = formatBookingTime(bookingWithZoom, adminTz);
-
                   const template = settings.email_admin_event_notification_template || DEFAULT_ADMIN_EVENT_TEMPLATE;
                   const textBody = fillTemplate(template, {
                     client_name: `${booking.first_name} ${booking.last_name}`,
                     client_email: booking.client_email,
                     business_name: settings.business_name,
-                    date: dateDisplay,
-                    time: timeDisplay,
+                    ...buildDateTimeFields(bookingWithZoom, adminTz),
                     duration: booking.duration_minutes.toString(),
                   });
 

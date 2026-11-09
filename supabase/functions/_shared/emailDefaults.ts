@@ -55,7 +55,7 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     'Your meeting with {{business_name}} has been confirmed.',
     [
       heading('Your Meeting is Confirmed'),
-      text('Hi {{client_name}},\n\nYour meeting with {{business_name}} has been confirmed.\n\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      text('Hi {{client_name}},\n\nYour meeting with {{business_name}} has been confirmed.\n\nDate: {{client_date}}\nTime: {{client_time}}\nDuration: {{duration}} minutes'),
       spacer(12),
       staticBlock('zoom'),
       staticBlock('googleCalendar'),
@@ -85,10 +85,10 @@ export const defaultEmailTemplates: AllEmailTemplates = {
 
   cancellation: makeTemplate(
     'Your meeting has been cancelled',
-    'Your meeting with {{business_name}} scheduled for {{date}} at {{time}} has been cancelled.',
+    'Your meeting with {{business_name}} scheduled for {{client_date}} at {{client_time}} has been cancelled.',
     [
       heading('Meeting Cancelled'),
-      text('Hi {{client_name}},\n\nYour meeting with {{business_name}} scheduled for {{date}} at {{time}} has been cancelled.\n\n{{notes_to_client}}\n\nIf you believe this is an error, please contact us.'),
+      text('Hi {{client_name}},\n\nYour meeting with {{business_name}} scheduled for {{client_date}} at {{client_time}} has been cancelled.\n\n{{notes_to_client}}\n\nIf you believe this is an error, please contact us.'),
       divider(),
       staticBlock('footer'),
     ],
@@ -117,7 +117,7 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     'Your meeting details with {{business_name}} have been updated.',
     [
       heading('Booking Updated'),
-      text('Hi {{client_name}},\n\nYour meeting details with {{business_name}} have been updated.\n\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      text('Hi {{client_name}},\n\nYour meeting details with {{business_name}} have been updated.\n\nDate: {{client_date}}\nTime: {{client_time}}\nDuration: {{duration}} minutes'),
       spacer(8),
       staticBlock('changeDetails'),
       staticBlock('zoom'),
@@ -147,7 +147,7 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     'This is a reminder for your upcoming meeting with {{business_name}}.',
     [
       heading('Meeting Reminder'),
-      text('Hi {{client_name}},\n\nThis is a reminder for your upcoming meeting with {{business_name}}.\n\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      text('Hi {{client_name}},\n\nThis is a reminder for your upcoming meeting with {{business_name}}.\n\nDate: {{client_date}}\nTime: {{client_time}}\nDuration: {{duration}} minutes'),
       spacer(8),
       staticBlock('zoom'),
       staticBlock('googleCalendar'),
@@ -216,7 +216,7 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     '{{client_name}} has booked a meeting with {{business_name}}.',
     [
       heading('New Booking Confirmed'),
-      text('A new meeting has been booked:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      text('A new meeting has been booked:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nClient time: {{client_date}} at {{client_time}}\nYour time: {{admin_date}} at {{admin_time}}\nDuration: {{duration}} minutes'),
       spacer(8),
       labeledBlock('clientNotes', 'Client Notes'),
       divider(),
@@ -229,7 +229,7 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     'You have an upcoming meeting with {{client_name}}.',
     [
       heading('Upcoming Meeting Notification'),
-      text('You have an upcoming meeting:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nDate: {{date}}\nTime: {{time}}\nDuration: {{duration}} minutes'),
+      text('You have an upcoming meeting:\n\nClient: {{client_name}}\nEmail: {{client_email}}\nClient time: {{client_date}} at {{client_time}}\nYour time: {{admin_date}} at {{admin_time}}\nDuration: {{duration}} minutes'),
       divider(),
       staticBlock('footer'),
     ],

@@ -7,8 +7,6 @@ export interface EmailPlaceholder {
 
 const SHARED_PLACEHOLDERS: EmailPlaceholder[] = [
   { key: 'client_name', label: 'Client name' },
-  { key: 'date', label: 'Booking date' },
-  { key: 'time', label: 'Start time' },
   { key: 'duration', label: 'Duration (minutes)' },
   { key: 'client_email', label: 'Client email' },
   { key: 'client_status', label: 'New or existing client' },
@@ -17,6 +15,8 @@ const SHARED_PLACEHOLDERS: EmailPlaceholder[] = [
 ];
 
 const CLIENT_PLACEHOLDERS: EmailPlaceholder[] = [
+  { key: 'client_date', label: "Booking date (client's time zone)" },
+  { key: 'client_time', label: "Start time (client's time zone)" },
   { key: 'business_name', label: 'Business name' },
   { key: 'zoom_link', label: 'Zoom link' },
   { key: 'zoom_passcode', label: 'Zoom passcode' },
@@ -28,6 +28,10 @@ const CLIENT_PLACEHOLDERS: EmailPlaceholder[] = [
 ];
 
 const ADMIN_PLACEHOLDERS: EmailPlaceholder[] = [
+  { key: 'client_date', label: "Booking date (client's time zone)" },
+  { key: 'client_time', label: "Start time (client's time zone)" },
+  { key: 'admin_date', label: 'Booking date (your time zone)' },
+  { key: 'admin_time', label: 'Start time (your time zone)' },
   { key: 'zoom_link', label: 'Zoom link' },
   { key: 'zoom_passcode', label: 'Zoom passcode' },
   { key: 'client_notes', label: 'Client notes' },
