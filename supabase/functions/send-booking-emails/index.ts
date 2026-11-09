@@ -324,9 +324,9 @@ function buildManageSection(bookingToken: string | null, publicSiteUrl: string, 
   if (!bookingToken) return "";
   const manageLink = buildManageLink(bookingToken, publicSiteUrl);
   return `<div style="margin-top:20px;">
-    <p style="margin:0;color:#6b7280;font-size:14px;">Need to cancel or reschedule?</p>
-    <p style="margin:4px 0 0 0;"><a href="${manageLink}" style="color:#15803d;">Manage your booking here</a></p>
-    <p style="margin:8px 0 0 0;color:#9ca3af;font-size:13px;">Please note: meetings cannot be rescheduled or cancelled within ${leadHours} hour${leadHours !== 1 ? "s" : ""} of the start time. For last-minute changes, please contact us directly.</p>
+    <p style="margin:0;color:#666666;font-size:14px;">Need to cancel or reschedule?</p>
+    <p style="margin:4px 0 0 0;"><a href="${manageLink}" style="color:#006B00;">Manage your booking here</a></p>
+    <p style="margin:8px 0 0 0;color:#767676;font-size:13px;">Please note: meetings cannot be rescheduled or cancelled within ${leadHours} hour${leadHours !== 1 ? "s" : ""} of the start time. For last-minute changes, please contact us directly.</p>
   </div>`;
 }
 
@@ -479,31 +479,31 @@ function buildEmailData(
 function buildEmailHtml(textBody: string, elements: EmailElements, booking: Booking, settings: AdminSettings, publicSiteUrl: string, effectiveAdminPhone?: string): string {
   const sections: string[] = [];
 
-  sections.push(`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;white-space:pre-wrap;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`);
+  sections.push(`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#333333;white-space:pre-wrap;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`);
 
   const isPhoneMeeting = booking.meeting_location_type === 'phone';
 
   if (isPhoneMeeting) {
     const clientPhone = booking.client_phone || '';
     const adminPhone = effectiveAdminPhone || settings.contact_phone || '';
-    sections.push(`<div style="margin-top:20px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-      <p style="margin:0;font-weight:600;color:#374151;">Phone Meeting Details</p>
-      <p style="margin:8px 0 0 0;color:#6b7280;font-size:14px;">You will receive a call at the number you provided: ${clientPhone}.</p>
-      <p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">Expect a call from ${settings.business_name} at: ${adminPhone}.</p>
+    sections.push(`<div style="margin-top:20px;padding:16px;background:#F5F5F5;border:1px solid #DCDCDC;border-radius:8px;">
+      <p style="margin:0;font-weight:600;color:#484848;">Phone Meeting Details</p>
+      <p style="margin:8px 0 0 0;color:#666666;font-size:14px;">You will receive a call at the number you provided: ${clientPhone}.</p>
+      <p style="margin:4px 0 0 0;color:#666666;font-size:14px;">Expect a call from ${settings.business_name} at: ${adminPhone}.</p>
     </div>`);
   } else {
     if (elements.zoom && booking.zoom_link) {
-      sections.push(`<div style="margin-top:20px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-        <p style="margin:0;font-weight:600;color:#166534;">Zoom Meeting</p>
-        <p style="margin:8px 0 0 0;"><a href="${booking.zoom_link}" style="color:#15803d;word-break:break-all;">${booking.zoom_link}</a></p>
-        ${(<any>booking).zoom_passcode ? `<p style="margin:4px 0 0 0;color:#166534;">Passcode: ${(<any>booking).zoom_passcode}</p>` : ""}
+      sections.push(`<div style="margin-top:20px;padding:16px;background:#EEF8EC;border:1px solid #BFE3B3;border-radius:8px;">
+        <p style="margin:0;font-weight:600;color:#004700;">Zoom Meeting</p>
+        <p style="margin:8px 0 0 0;"><a href="${booking.zoom_link}" style="color:#006B00;word-break:break-all;">${booking.zoom_link}</a></p>
+        ${(<any>booking).zoom_passcode ? `<p style="margin:4px 0 0 0;color:#004700;">Passcode: ${(<any>booking).zoom_passcode}</p>` : ""}
       </div>`);
     }
 
     if (elements.phone && settings.contact_phone) {
-      sections.push(`<div style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-        <p style="margin:0;font-weight:600;color:#374151;">Phone</p>
-        <p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_phone}</p>
+      sections.push(`<div style="margin-top:12px;padding:12px;background:#F5F5F5;border:1px solid #DCDCDC;border-radius:8px;">
+        <p style="margin:0;font-weight:600;color:#484848;">Phone</p>
+        <p style="margin:4px 0 0 0;color:#666666;font-size:14px;">${settings.contact_phone}</p>
       </div>`);
     }
   }
@@ -518,9 +518,9 @@ function buildEmailHtml(textBody: string, elements: EmailElements, booking: Book
   sections.push(buildManageSection(booking.booking_token, publicSiteUrl, settings.booking_lead_hours ?? 2));
 
   if (elements.company_info) {
-    sections.push(`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-      ${settings.contact_email ? `<p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_email}</p>` : ""}
+    sections.push(`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #DCDCDC;">
+      <p style="margin:0;font-weight:600;color:#484848;">${settings.business_name}</p>
+      ${settings.contact_email ? `<p style="margin:4px 0 0 0;color:#666666;font-size:14px;">${settings.contact_email}</p>` : ""}
     </div>`);
   }
 
@@ -530,31 +530,31 @@ function buildEmailHtml(textBody: string, elements: EmailElements, booking: Book
 function buildRecurringEmailHtml(textBody: string, elements: EmailElements, firstBooking: Booking, settings: AdminSettings, publicSiteUrl: string, effectiveAdminPhone?: string): string {
   const sections: string[] = [];
 
-  sections.push(`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;white-space:pre-wrap;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`);
+  sections.push(`<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#333333;white-space:pre-wrap;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`);
 
   const isPhoneMeeting = firstBooking.meeting_location_type === 'phone';
 
   if (isPhoneMeeting) {
     const clientPhone = firstBooking.client_phone || '';
     const adminPhone = effectiveAdminPhone || settings.contact_phone || '';
-    sections.push(`<div style="margin-top:20px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-      <p style="margin:0;font-weight:600;color:#374151;">Phone Meeting Details</p>
-      <p style="margin:8px 0 0 0;color:#6b7280;font-size:14px;">You will receive a call at the number you provided: ${clientPhone}.</p>
-      <p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">Expect a call from ${settings.business_name} at: ${adminPhone}.</p>
+    sections.push(`<div style="margin-top:20px;padding:16px;background:#F5F5F5;border:1px solid #DCDCDC;border-radius:8px;">
+      <p style="margin:0;font-weight:600;color:#484848;">Phone Meeting Details</p>
+      <p style="margin:8px 0 0 0;color:#666666;font-size:14px;">You will receive a call at the number you provided: ${clientPhone}.</p>
+      <p style="margin:4px 0 0 0;color:#666666;font-size:14px;">Expect a call from ${settings.business_name} at: ${adminPhone}.</p>
     </div>`);
   } else {
     if (elements.zoom && firstBooking.zoom_link) {
-      sections.push(`<div style="margin-top:20px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-        <p style="margin:0;font-weight:600;color:#166534;">Zoom Meeting</p>
-        <p style="margin:8px 0 0 0;"><a href="${firstBooking.zoom_link}" style="color:#15803d;word-break:break-all;">${firstBooking.zoom_link}</a></p>
-        ${(<any>firstBooking).zoom_passcode ? `<p style="margin:4px 0 0 0;color:#166534;">Passcode: ${(<any>firstBooking).zoom_passcode}</p>` : ""}
+      sections.push(`<div style="margin-top:20px;padding:16px;background:#EEF8EC;border:1px solid #BFE3B3;border-radius:8px;">
+        <p style="margin:0;font-weight:600;color:#004700;">Zoom Meeting</p>
+        <p style="margin:8px 0 0 0;"><a href="${firstBooking.zoom_link}" style="color:#006B00;word-break:break-all;">${firstBooking.zoom_link}</a></p>
+        ${(<any>firstBooking).zoom_passcode ? `<p style="margin:4px 0 0 0;color:#004700;">Passcode: ${(<any>firstBooking).zoom_passcode}</p>` : ""}
       </div>`);
     }
 
     if (elements.phone && settings.contact_phone) {
-      sections.push(`<div style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-        <p style="margin:0;font-weight:600;color:#374151;">Phone</p>
-        <p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_phone}</p>
+      sections.push(`<div style="margin-top:12px;padding:12px;background:#F5F5F5;border:1px solid #DCDCDC;border-radius:8px;">
+        <p style="margin:0;font-weight:600;color:#484848;">Phone</p>
+        <p style="margin:4px 0 0 0;color:#666666;font-size:14px;">${settings.contact_phone}</p>
       </div>`);
     }
   }
@@ -569,9 +569,9 @@ function buildRecurringEmailHtml(textBody: string, elements: EmailElements, firs
   sections.push(buildManageSection(firstBooking.booking_token, publicSiteUrl, settings.booking_lead_hours ?? 2));
 
   if (elements.company_info) {
-    sections.push(`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
-      ${settings.contact_email ? `<p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">${settings.contact_email}</p>` : ""}
+    sections.push(`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #DCDCDC;">
+      <p style="margin:0;font-weight:600;color:#484848;">${settings.business_name}</p>
+      ${settings.contact_email ? `<p style="margin:4px 0 0 0;color:#666666;font-size:14px;">${settings.contact_email}</p>` : ""}
     </div>`);
   }
 
@@ -821,12 +821,12 @@ Deno.serve(async (req: Request) => {
         session_list: todayBookings.map(b => ({ date: b.date, start_time: b.start_time })),
       };
 
-      const fallbackHtml = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-        <h2 style="color:#1f2937;">Daily Meeting Summary - ${formatDisplayDate(today)}</h2>
+      const fallbackHtml = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#333333;max-width:600px;margin:0 auto;padding:24px;">
+        <h2 style="color:#333333;">Daily Meeting Summary - ${formatDisplayDate(today)}</h2>
         <p>You have ${todayBookings.length} meeting${todayBookings.length !== 1 ? "s" : ""} scheduled:</p>
-        <div style="white-space:pre-wrap;padding:16px;background:#f9fafb;border-radius:8px;">${summaryLines}</div>
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
+        <div style="white-space:pre-wrap;padding:16px;background:#F5F5F5;border-radius:8px;">${summaryLines}</div>
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #DCDCDC;">
+          <p style="margin:0;font-weight:600;color:#484848;">${settings.business_name}</p>
         </div>
       </div>`;
 
@@ -1294,12 +1294,12 @@ Deno.serve(async (req: Request) => {
         adminChangeData,
         mergedTemplates,
         () => ({
-          html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;">
-            <h2 style="color:#1f2937;">Booking ${cType === "cancelled" ? "Cancelled" : cType === "rescheduled" ? "Rescheduled" : "Updated"} by Client</h2>
+          html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#333333;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#333333;">Booking ${cType === "cancelled" ? "Cancelled" : cType === "rescheduled" ? "Rescheduled" : "Updated"} by Client</h2>
             <p><strong>${clientName}</strong> (${booking.client_email})</p>
-            <div style="white-space:pre-wrap;padding:16px;background:#f9fafb;border-radius:8px;margin-top:12px;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-weight:600;color:#374151;">${settings.business_name}</p>
+            <div style="white-space:pre-wrap;padding:16px;background:#F5F5F5;border-radius:8px;margin-top:12px;">${textBody.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #DCDCDC;">
+              <p style="margin:0;font-weight:600;color:#484848;">${settings.business_name}</p>
             </div>
           </div>`,
           subject: `${TEST_SUBJECT_PREFIX}Client ${cType === "cancelled" ? "Cancelled" : cType === "rescheduled" ? "Rescheduled" : "Updated"}: ${clientName}`,

@@ -116,7 +116,7 @@ function renderHeading(props: HeadingProps, data: Record<string, any>) {
       <Heading
         as={level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3'}
         style={{
-          color: props.textColor ?? '#6A4E3E',
+          color: props.textColor ?? '#4E3B2A',
           fontSize,
           fontWeight: 700,
           textAlign: align,
@@ -139,7 +139,7 @@ function renderText(props: TextProps, data: Record<string, any>) {
     <>
       <Text
         style={{
-          color: props.textColor ?? '#1F2937',
+          color: props.textColor ?? '#333333',
           fontSize: '15px',
           lineHeight: '1.6',
           textAlign: align,
@@ -156,7 +156,7 @@ function renderText(props: TextProps, data: Record<string, any>) {
 function renderButton(props: ButtonProps, data: Record<string, any>) {
   const text = replacePlaceholders(props.text, data);
   const href = replacePlaceholders(props.href, data);
-  const bgColor = props.buttonColor ?? '#059669';
+  const bgColor = props.buttonColor ?? '#008000';
   const txtColor = props.textColor ?? '#FFFFFF';
   const align = props.textAlign ?? 'left';
 
@@ -185,7 +185,7 @@ function renderButton(props: ButtonProps, data: Record<string, any>) {
 }
 
 function renderDivider(props: DividerProps) {
-  const color = props.color ?? '#E5E7EB';
+  const color = props.color ?? '#DCDCDC';
   const padding = props.padding ?? 16;
 
   return (
@@ -211,19 +211,19 @@ function renderSpacer(props: SpacerProps) {
 
 function renderZoom(data: Record<string, any>, props: ZoomProps) {
   if (!data.zoom_link) return null;
-  const textColor = props.textColor ?? '#166534';
+  const textColor = props.textColor ?? '#004700';
 
   return (
     <>
       <Section style={{ height: '20px', lineHeight: '20px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F0FDF4'} borderColor="#BBF7D0" padding="16px">
+      <InfoBox backgroundColor={props.backgroundColor ?? '#EEF8EC'} borderColor="#BFE3B3" padding="16px">
         <Text style={{ margin: 0, fontWeight: 600, color: textColor, fontSize: '15px' }}>
           Zoom Meeting
         </Text>
         <Text style={{ margin: '8px 0 0 0' }}>
           <Link
             href={data.zoom_link}
-            style={{ color: '#047857', wordBreak: 'break-all', fontSize: '14px' }}
+            style={{ color: '#005A00', wordBreak: 'break-all', fontSize: '14px' }}
           >
             {data.zoom_link}
           </Link>
@@ -240,16 +240,16 @@ function renderZoom(data: Record<string, any>, props: ZoomProps) {
 
 function renderPhoneContact(data: Record<string, any>, props: PhoneContactProps) {
   if (!data.business_contact_phone) return null;
-  const textColor = props.textColor ?? '#374151';
+  const textColor = props.textColor ?? '#484848';
 
   return (
     <>
       <Section style={{ height: '12px', lineHeight: '12px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F8FAFC'} borderColor="#E2E8F0" padding="12px">
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="12px">
         <Text style={{ margin: 0, fontWeight: 600, color: textColor, fontSize: '15px' }}>
           Phone
         </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+        <Text style={{ margin: '4px 0 0 0', color: '#666666', fontSize: '14px' }}>
           {data.business_contact_phone}
         </Text>
       </InfoBox>
@@ -290,11 +290,11 @@ function renderNotesToClient(props: NotesToClientProps, data: Record<string, any
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F9FAFB'} borderColor="#E5E7EB" padding="12px">
-        <Text style={{ margin: 0, fontWeight: 600, color: props.textColor ?? '#374151', fontSize: '14px' }}>
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="12px">
+        <Text style={{ margin: 0, fontWeight: 600, color: props.textColor ?? '#484848', fontSize: '14px' }}>
           {label}
         </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+        <Text style={{ margin: '4px 0 0 0', color: '#555555', fontSize: '14px', lineHeight: '1.6' }}>
           {nlToBr(data.notes_to_client)}
         </Text>
       </InfoBox>
@@ -309,11 +309,11 @@ function renderClientNotes(props: ClientNotesProps, data: Record<string, any>) {
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F9FAFB'} borderColor="#E5E7EB" padding="12px">
-        <Text style={{ margin: 0, fontWeight: 600, color: props.textColor ?? '#374151', fontSize: '14px' }}>
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="12px">
+        <Text style={{ margin: 0, fontWeight: 600, color: props.textColor ?? '#484848', fontSize: '14px' }}>
           {label}
         </Text>
-        <Text style={{ margin: '4px 0 0 0', color: '#4B5563', fontSize: '14px', lineHeight: '1.6' }}>
+        <Text style={{ margin: '4px 0 0 0', color: '#555555', fontSize: '14px', lineHeight: '1.6' }}>
           {nlToBr(data.client_notes)}
         </Text>
       </InfoBox>
@@ -333,7 +333,7 @@ function renderManageBookingLink(props: ManageBookingLinkProps, data: Record<str
           href={data.booking_link}
           style={{
             padding: '12px 24px',
-            backgroundColor: props.buttonColor ?? '#059669',
+            backgroundColor: props.buttonColor ?? '#008000',
             color: props.textColor ?? '#FFFFFF',
             textDecoration: 'none',
             borderRadius: '6px',
@@ -357,19 +357,19 @@ function renderFooter(data: Record<string, any>) {
       <Section
         style={{
           paddingTop: '16px',
-          borderTop: '1px solid #E5E7EB',
+          borderTop: '1px solid #DCDCDC',
         }}
       >
-        <Text style={{ margin: 0, fontWeight: 600, color: '#374151', fontSize: '15px' }}>
+        <Text style={{ margin: 0, fontWeight: 600, color: '#484848', fontSize: '15px' }}>
           {data.business_name}
         </Text>
         {data.business_contact_email && (
-          <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+          <Text style={{ margin: '4px 0 0 0', color: '#666666', fontSize: '14px' }}>
             {data.business_contact_email}
           </Text>
         )}
         {data.business_contact_phone && (
-          <Text style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+          <Text style={{ margin: '4px 0 0 0', color: '#666666', fontSize: '14px' }}>
             {data.business_contact_phone}
           </Text>
         )}
@@ -410,7 +410,7 @@ function renderSessionList(data: Record<string, any>) {
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
       <Section>
-        <Text style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#6A4E3E', fontSize: '16px' }}>
+        <Text style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#4E3B2A', fontSize: '16px' }}>
           Scheduled Sessions
         </Text>
         <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -419,13 +419,13 @@ function renderSessionList(data: Record<string, any>) {
               <tr
                 key={i}
                 style={{
-                  backgroundColor: i % 2 === 0 ? '#F9FAFB' : '#FFFFFF',
+                  backgroundColor: i % 2 === 0 ? '#F5F5F5' : '#FFFFFF',
                 }}
               >
                 <td
                   style={{
                     padding: '8px 12px',
-                    color: '#6B7280',
+                    color: '#666666',
                     fontSize: '14px',
                     fontWeight: 600,
                     width: '32px',
@@ -437,7 +437,7 @@ function renderSessionList(data: Record<string, any>) {
                 <td
                   style={{
                     padding: '8px 12px',
-                    color: '#1F2937',
+                    color: '#333333',
                     fontSize: '14px',
                   }}
                 >
@@ -486,18 +486,18 @@ function renderRescheduleDetails(data: Record<string, any>, props: RescheduleDet
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F9FAFB'} borderColor="#E5E7EB" padding="16px">
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="16px">
         <table cellPadding={0} cellSpacing={0} border={0} role="presentation" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
               <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-                <Text style={{ margin: 0, color: '#6B7280', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Text style={{ margin: 0, color: '#666666', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
                   Previous
                 </Text>
                 <Text
                   style={{
                     margin: '4px 0 0 0',
-                    color: '#6B7280',
+                    color: '#666666',
                     fontSize: '15px',
                     textDecoration: 'line-through',
                   }}
@@ -506,10 +506,10 @@ function renderRescheduleDetails(data: Record<string, any>, props: RescheduleDet
                 </Text>
               </td>
               <td style={{ width: '50%', padding: '8px 12px', verticalAlign: 'top' }}>
-                <Text style={{ margin: 0, color: '#047857', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Text style={{ margin: 0, color: '#005A00', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase' }}>
                   New
                 </Text>
-                <Text style={{ margin: '4px 0 0 0', color: '#047857', fontSize: '15px', fontWeight: 600 }}>
+                <Text style={{ margin: '4px 0 0 0', color: '#005A00', fontSize: '15px', fontWeight: 600 }}>
                   {newDisplay}
                 </Text>
               </td>
@@ -531,9 +531,9 @@ function renderChangeDetails(data: Record<string, any>, props: ChangeDetailsProp
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F9FAFB'} borderColor="#E5E7EB" padding="16px">
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="16px">
         {typeLabel && (
-          <Text style={{ margin: 0, fontWeight: 700, color: props.textColor ?? '#374151', fontSize: '16px' }}>
+          <Text style={{ margin: 0, fontWeight: 700, color: props.textColor ?? '#484848', fontSize: '16px' }}>
             {typeLabel}
           </Text>
         )}
@@ -541,7 +541,7 @@ function renderChangeDetails(data: Record<string, any>, props: ChangeDetailsProp
           <Text
             style={{
               margin: typeLabel ? '8px 0 0 0' : '0',
-              color: '#4B5563',
+              color: '#555555',
               fontSize: '14px',
               lineHeight: '1.6',
             }}
@@ -563,12 +563,12 @@ function renderBookingDetails(data: Record<string, any>, props: BookingDetailsPr
   ].filter((r) => r.value);
   if (rows.length === 0) return null;
 
-  const textColor = props.textColor ?? '#374151';
+  const textColor = props.textColor ?? '#484848';
 
   return (
     <>
       <Section style={{ height: '16px', lineHeight: '16px' }} />
-      <InfoBox backgroundColor={props.backgroundColor ?? '#F9FAFB'} borderColor="#E5E7EB" padding="16px">
+      <InfoBox backgroundColor={props.backgroundColor ?? '#F5F5F5'} borderColor="#DCDCDC" padding="16px">
         {props.label !== '' && (
           <Text style={{ margin: '0 0 8px 0', fontWeight: 700, color: textColor, fontSize: '15px' }}>
             {props.label ?? 'Booking Details'}
@@ -578,10 +578,10 @@ function renderBookingDetails(data: Record<string, any>, props: BookingDetailsPr
           <tbody>
             {rows.map((row) => (
               <tr key={row.label}>
-                <td style={{ padding: '4px 12px 4px 0', width: '40%', verticalAlign: 'top', color: '#6B7280', fontSize: '14px', fontWeight: 600 }}>
+                <td style={{ padding: '4px 12px 4px 0', width: '40%', verticalAlign: 'top', color: '#666666', fontSize: '14px', fontWeight: 600 }}>
                   {row.label}
                 </td>
-                <td style={{ padding: '4px 0', verticalAlign: 'top', color: '#1F2937', fontSize: '14px' }}>
+                <td style={{ padding: '4px 0', verticalAlign: 'top', color: '#333333', fontSize: '14px' }}>
                   {row.value}
                 </td>
               </tr>

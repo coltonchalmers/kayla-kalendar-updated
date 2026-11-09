@@ -485,7 +485,7 @@ function ComponentEditModal({
                   { value: '3', label: 'H3 — Small' },
                 ]}
               />
-              <StyleFields values={props} onChange={update} colors={{ textColor: '#6A4E3E' }} alignDefault="left" />
+              <StyleFields values={props} onChange={update} colors={{ textColor: '#4E3B2A' }} alignDefault="left" />
             </>
           )}
 
@@ -498,7 +498,7 @@ function ComponentEditModal({
                 onChange={(e) => update('text', e.target.value)}
               />
               <EmailPlaceholderPicker emailType={emailType} onInsert={insertPlaceholder} />
-              <StyleFields values={props} onChange={update} colors={{ textColor: '#1F2937' }} alignDefault="left" />
+              <StyleFields values={props} onChange={update} colors={{ textColor: '#333333' }} alignDefault="left" />
             </>
           )}
 
@@ -617,7 +617,7 @@ function ComponentEditModal({
           )}
 
           {component.type === 'zoom' && (
-            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#EEF8EC', textColor: '#166534' }} />
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#EEF8EC', textColor: '#004700' }} />
           )}
 
           {component.type === 'phoneContact' && (
@@ -708,7 +708,7 @@ function StyleFields({
               key={key}
               label={STYLE_FIELD_LABELS[key]}
               type="color"
-              value={(current[key] as string | undefined) ?? colors[key] ?? '#000000'}
+              value={(current[key] as string | undefined) ?? colors[key] ?? '#333333'}
               onChange={(e) => onChange(key, e.target.value)}
             />
           ))}
