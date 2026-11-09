@@ -7,11 +7,11 @@
     },
     "send-booking-emails": {
       "hasChanged": false,
-      "hash": "2709cea57e80d10108b84de8056da8ad9cd6daaafa74079bdbbd45cd3a9e7429e8fd832a5fcec9701d5b5b3ffcb9c6d7a7bb7b69362c5541336bd28c2dbe3210"
+      "hash": "2709cea57e80d10108b84de8056da8ad9cd6daaafa74079bdbbd45cd3a9e7429af7605b58a2de8bcc59086fcaa2bef4874e9238764343d11ab17c899b94a8248"
     },
     "send-reminders": {
       "hasChanged": false,
-      "hash": "680cbf16e6047317bab6117d75b96d7306bb36cb829d31472228ff622321170fe8fd832a5fcec9701d5b5b3ffcb9c6d7a7bb7b69362c5541336bd28c2dbe3210"
+      "hash": "680cbf16e6047317bab6117d75b96d7306bb36cb829d31472228ff622321170faf7605b58a2de8bcc59086fcaa2bef4874e9238764343d11ab17c899b94a8248"
     }
   }
 }
