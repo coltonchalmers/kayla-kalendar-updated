@@ -14,7 +14,7 @@ export async function renderTemplateHtml(
   data: Record<string, any>,
 ): Promise<{ html: string; subject: string }> {
   const tree = (
-    <EmailShell previewText={template.previewText ?? ''} assetBaseUrl={String(data.site_url ?? '')}>
+    <EmailShell previewText={replacePlaceholders(template.previewText ?? '', data)} assetBaseUrl={String(data.site_url ?? '')}>
       {(template.component.children ?? []).map((child) => (
         <EmailComponentRenderer key={child.id} component={child} data={data} />
       ))}

@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from 'react';
 import { render } from '@react-email/render';
 import { EmailShell } from '@/components/emails/EmailShell';
-import { EmailComponentRenderer } from '@/components/emails/EmailComponentRenderer';
+import { EmailComponentRenderer, replacePlaceholders } from '@/components/emails/EmailComponentRenderer';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import type { EmailTemplate } from '@/lib/types';
 
@@ -55,7 +55,7 @@ function EmailPreviewInner({ template }: EmailPreviewProps) {
     setRendering(true);
 
     const tree = (
-      <EmailShell previewText={template.previewText ?? ''} assetBaseUrl={window.location.origin}>
+      <EmailShell previewText={replacePlaceholders(template.previewText ?? '', PREVIEW_DATA)} assetBaseUrl={window.location.origin}>
         {(template.component.children ?? []).map((child) => (
           <EmailComponentRenderer key={child.id} component={child} data={PREVIEW_DATA} />
         ))}

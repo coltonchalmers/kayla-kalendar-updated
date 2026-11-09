@@ -285,7 +285,7 @@ function renderGoogleCalendar(data: Record<string, any>, props: GoogleCalendarPr
 
 function renderNotesToClient(props: NotesToClientProps, data: Record<string, any>) {
   if (!data.notes_to_client) return null;
-  const label = props.label ?? 'Notes';
+  const label = props.label ?? 'Notes from Jungo';
 
   return (
     <>

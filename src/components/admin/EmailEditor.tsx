@@ -138,7 +138,7 @@ function createDefaultComponent(type: EmailComponentType): EmailComponent {
     case 'html':
       return { ...base, props: { type: 'html', content: '<p>Custom HTML</p>' } };
     case 'notesToClient':
-      return { ...base, props: { type: 'notesToClient', label: 'Notes' } };
+      return { ...base, props: { type: 'notesToClient', label: 'Notes from Jungo' } };
     case 'clientNotes':
       return { ...base, props: { type: 'clientNotes', label: 'Client Notes' } };
     case 'manageBookingLink':
@@ -300,6 +300,11 @@ export default function EmailEditor({ templates, onChange, selectedKey, onSelect
           value={selectedTemplate.previewText ?? ''}
           onChange={(e) => updateTemplate({ previewText: e.target.value })}
           placeholder="Short preview text shown in inbox..."
+        />
+        <EmailPlaceholderPicker
+          emailType={selectedKey}
+          collapsible
+          onInsert={(token) => updateTemplate({ previewText: `${selectedTemplate.previewText ?? ''}${token}` })}
         />
       </div>
 
@@ -596,24 +601,6 @@ function ComponentEditModal({
             />
           )}
 
-          {component.type === 'notesToClient' && (
-            <Input
-              label="Label"
-              value={(props as NotesToClientProps).label ?? ''}
-              onChange={(e) => update('label', e.target.value)}
-              placeholder="Notes"
-            />
-          )}
-
-          {component.type === 'clientNotes' && (
-            <Input
-              label="Label"
-              value={(props as ClientNotesProps).label ?? ''}
-              onChange={(e) => update('label', e.target.value)}
-              placeholder="Client Notes"
-            />
-          )}
-
           {component.type === 'manageBookingLink' && (
             <>
               <Input
@@ -643,7 +630,7 @@ function ComponentEditModal({
                 label="Label"
                 value={(props as NotesToClientProps).label ?? ''}
                 onChange={(e) => update('label', e.target.value)}
-                placeholder="Notes"
+                placeholder="Notes from Jungo"
               />
               <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
             </>
