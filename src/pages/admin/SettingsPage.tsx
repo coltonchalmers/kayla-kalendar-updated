@@ -739,7 +739,7 @@ export default function SettingsPage() {
           </Modal>
 
           {/* Editor + Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <Card className="min-w-0">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Editor</h2>
               <EmailEditor
@@ -749,7 +749,7 @@ export default function SettingsPage() {
                 onSelectedKeyChange={setSelectedEmailKey}
               />
             </Card>
-            <div className="min-w-0 lg:sticky lg:top-4 self-start">
+            <div className="relative min-w-0 h-[640px] lg:h-auto">
               <EmailPreview template={selectedTemplate} />
             </div>
           </div>

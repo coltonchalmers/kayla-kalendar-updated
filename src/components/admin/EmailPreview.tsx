@@ -29,8 +29,8 @@ const PREVIEW_DATA: Record<string, any> = {
   old_time: '10:00',
   new_date: '2026-10-13',
   new_time: '14:00',
-  change_type: 'rescheduled',
-  change_details: 'Previous: Monday, October 12, 2026 at 10:00 AM\nNew: Monday, October 13, 2026 at 2:00 PM',
+  change_type: 'updated',
+  change_details: 'I would like to discuss the quarterly report and review the budget for next quarter. Could we also go over the onboarding timeline before we meet?',
   client_email: 'jane.doe@example.com',
   client_status: 'New client',
   meeting_location: 'Zoom',
@@ -83,18 +83,17 @@ function EmailPreviewInner({ template }: EmailPreviewProps) {
   }, [template]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="absolute inset-0 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
         <span className="text-sm font-medium text-gray-600">Live Preview</span>
         {rendering && <LoadingSpinner size="sm" />}
       </div>
-      <div className="flex-1 overflow-hidden bg-gray-100 flex items-start justify-center p-4">
+      <div className="flex-1 min-h-0 bg-gray-100 flex justify-center p-4">
         <iframe
           srcDoc={html}
           sandbox="allow-same-origin"
           title="Email Preview"
-          className="w-full max-w-[600px] bg-white border border-gray-200 rounded-lg shadow-sm"
-          style={{ minHeight: '600px', height: '100%' }}
+          className="h-full w-full max-w-[600px] bg-white border border-gray-200 rounded-lg shadow-sm"
         />
       </div>
     </div>
