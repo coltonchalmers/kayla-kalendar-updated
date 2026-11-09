@@ -15,7 +15,7 @@ import {
 const BRAND_GREEN = '#6AAA47';
 const CTA_GREEN = '#3F7A2A';
 const WEBSITE_URL = 'https://jungosolutions.com/';
-const CTA_TEXT = 'What Else Can We Help With?';
+const CTA_TEXT = 'Branch Out Today';
 
 interface EmailShellProps {
   previewText: string;
