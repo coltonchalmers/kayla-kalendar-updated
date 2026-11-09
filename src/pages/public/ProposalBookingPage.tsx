@@ -15,8 +15,9 @@ import { supabase } from '@/lib/supabase';
 import { useProposalLinks } from '@/hooks/useProposalLinks';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
+import { useMonthSchedule } from '@/hooks/useMonthSchedule';
 import { useAvailability } from '@/hooks/useAvailability';
-import { generateTimeSlots, formatDate, formatDisplayDate, formatTime, detectTimezone, getTimezoneOptions, classNames, convertTimeSlot, convertTimeSlotWithDate, getMeetingInstantUTC, type ScheduleBlock } from '@/lib/utils';
+import { generateTimeSlots, getFullyBookedDates, hasAvailability, formatDate, formatDisplayDate, formatTime, detectTimezone, getTimezoneOptions, classNames, convertTimeSlot, convertTimeSlotWithDate, getMeetingInstantUTC, type ScheduleBlock } from '@/lib/utils';
 import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerBookingEmails } from '@/lib/bookingEmails';
 import type { Booking, MeetingType, ProposalSlot, BookingStep } from '@/lib/types';
@@ -115,6 +116,15 @@ export default function ProposalBookingPage() {
 
   const durationMinutes = meetingType?.duration_minutes || settings?.default_meeting_length || 30;
   const adminTimezone = settings?.timezone || 'America/New_York';
+
+  const monthSchedule = useMonthSchedule(viewYear, viewMonth, ownerUserId, !availLoading && !settingsLoading, fetchScheduleForDates);
+  const fullyBookedDates = useMemo(() => monthSchedule
+    ? getFullyBookedDates(
+        viewYear, viewMonth, monthSchedule,
+        d => hasAvailability(d, rules, overrides),
+        (d, daySchedule) => generateTimeSlots(d, rules, overrides, daySchedule, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone)
+      )
+    : new Set<string>(), [monthSchedule, viewYear, viewMonth, rules, overrides, durationMinutes, adminTimezone, settings?.booking_lead_hours, settings?.buffer_minutes, settings?.slot_increment_minutes]);
 
   const displayCalendarSlots = useMemo(() =>
     calendarSlots.map(s => convertTimeSlot(s, calendarDate || '', adminTimezone, clientTimezone)),
@@ -418,6 +428,7 @@ export default function ProposalBookingPage() {
               rules={rules}
               overrides={overrides}
               maxDate={maxDate}
+              fullyBookedDates={fullyBookedDates}
             />
 
             {calendarDate && (

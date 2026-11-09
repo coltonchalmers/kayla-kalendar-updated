@@ -16,8 +16,9 @@ import { supabase } from '@/lib/supabase';
 import { useAvailability } from '@/hooks/useAvailability';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
+import { useMonthSchedule } from '@/hooks/useMonthSchedule';
 import { useRecurringLinks } from '@/hooks/useRecurringLinks';
-import { generateTimeSlots, generateSlotsInRange, formatDate, formatDisplayDate, formatTime, addDays, addMonths, detectTimezone, getTimezoneOptions, timeToMinutes, convertTimeSlot, convertTimeSlotWithDate, isDateSelectable, type ScheduleBlock } from '@/lib/utils';
+import { generateTimeSlots, generateSlotsInRange, getFullyBookedDates, formatDate, formatDisplayDate, formatTime, addDays, addMonths, detectTimezone, getTimezoneOptions, timeToMinutes, convertTimeSlot, convertTimeSlotWithDate, isDateSelectable, type ScheduleBlock } from '@/lib/utils';
 import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerRecurringConfirmationEmail } from '@/lib/bookingEmails';
 import type { Booking, RecurringLink, MeetingType, TimeRestriction, BookingStep } from '@/lib/types';
@@ -152,12 +153,24 @@ export default function RecurringBookingPage() {
 
   const adminTimezone = settings?.timezone || 'America/New_York';
 
+  const monthSchedule = useMonthSchedule(viewYear, viewMonth, ownerUserId, !availLoading && !settingsLoading, fetchScheduleForDates);
+
   const timeRestrictions = link?.time_restrictions || null;
   const hasRestrictions = !!timeRestrictions && timeRestrictions.length > 0;
   const canBrowseFullAvailability = link?.allow_full_availability ?? true;
 
   // When using restrictions, use those; when using full availability (or no restrictions), use normal rules
   const activeRestrictions = hasRestrictions && !useFullAvailability ? timeRestrictions : null;
+
+  const fullyBookedDates = useMemo(() => monthSchedule
+    ? getFullyBookedDates(
+        viewYear, viewMonth, monthSchedule,
+        d => isDateSelectable(d, rules, overrides, activeRestrictions),
+        (d, daySchedule) => activeRestrictions
+          ? generateSlotsForRestrictions(d, activeRestrictions, daySchedule, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone)
+          : generateTimeSlots(d, rules, overrides, daySchedule, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone)
+      )
+    : new Set<string>(), [monthSchedule, viewYear, viewMonth, rules, overrides, activeRestrictions, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone]);
 
   const adminSetFrequency = !!link?.frequency && !link.allow_client_frequency;
   const adminSetEndCondition = !!link && (link.is_ongoing || !!link.occurrences || !!link.end_date) && !link.allow_client_end_date;
@@ -641,6 +654,7 @@ export default function RecurringBookingPage() {
               rules={rules}
               overrides={overrides}
               maxDate={maxDate}
+              fullyBookedDates={fullyBookedDates}
               timeRestrictions={activeRestrictions}
             />
           </>

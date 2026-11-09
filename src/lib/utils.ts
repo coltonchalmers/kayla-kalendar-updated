@@ -109,22 +109,16 @@ export function generateSlotsInRange(
 export function getFullyBookedDates(
   year: number,
   month: number,
-  rules: AvailabilityRule[],
-  overrides: AvailabilityOverride[],
   schedule: ScheduleBlock[],
-  durationMinutes: number,
-  leadHours: number,
-  bufferMinutes: number,
-  slotIncrement: number,
-  adminTimezone: string
+  isBookableDay: (date: Date) => boolean,
+  getDaySlots: (date: Date, daySchedule: ScheduleBlock[]) => string[]
 ): Set<string> {
   const blocked = new Set<string>();
   for (const { date, isCurrentMonth } of getMonthDays(year, month)) {
-    if (!isCurrentMonth || isPast(date) || !hasAvailability(date, rules, overrides)) continue;
+    if (!isCurrentMonth || isPast(date) || !isBookableDay(date)) continue;
     const dateStr = formatDate(date);
     const daySchedule = schedule.filter(b => b.date === dateStr);
-    const slots = generateTimeSlots(date, rules, overrides, daySchedule, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
-    if (slots.length === 0) blocked.add(dateStr);
+    if (getDaySlots(date, daySchedule).length === 0) blocked.add(dateStr);
   }
   return blocked;
 }

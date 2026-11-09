@@ -15,7 +15,8 @@ import { useAvailability } from '@/hooks/useAvailability';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
 import { useMeetingTypes } from '@/hooks/useMeetingTypes';
-import { generateTimeSlots, getFullyBookedDates, formatDate, detectTimezone, getTimezoneOptions, convertTimeSlot, convertTimeSlotWithDate } from '@/lib/utils';
+import { useMonthSchedule } from '@/hooks/useMonthSchedule';
+import { generateTimeSlots, getFullyBookedDates, hasAvailability, detectTimezone, getTimezoneOptions, convertTimeSlot, convertTimeSlotWithDate } from '@/lib/utils';
 import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerBookingEmails } from '@/lib/bookingEmails';
 import type { Booking, MeetingType, BookingStep } from '@/lib/types';
@@ -41,7 +42,6 @@ export default function MeetingTypeBookingPage() {
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [clientTimezone, setClientTimezone] = useState(detectTimezone);
   const [slotsError, setSlotsError] = useState(false);
-  const [fullyBookedDates, setFullyBookedDates] = useState<Set<string>>(new Set());
 
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -72,25 +72,14 @@ export default function MeetingTypeBookingPage() {
   const durationMinutes = meetingType?.duration_minutes || 30;
   const adminTimezone = settings?.timezone || 'America/New_York';
 
-  useEffect(() => {
-    if (!ownerUserId || availLoading || settingsLoading) return;
-    let cancelled = false;
-    const monthStart = formatDate(new Date(viewYear, viewMonth, 1));
-    const monthEnd = formatDate(new Date(viewYear, viewMonth + 1, 0));
-    fetchScheduleForDates(monthStart, monthEnd, ownerUserId)
-      .then(schedule => {
-        if (cancelled) return;
-        setFullyBookedDates(getFullyBookedDates(
-          viewYear, viewMonth, rules, overrides, schedule, durationMinutes,
-          settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0,
-          settings?.slot_increment_minutes ?? 15, adminTimezone
-        ));
-      })
-      .catch(() => {
-        if (!cancelled) setFullyBookedDates(new Set());
-      });
-    return () => { cancelled = true; };
-  }, [viewYear, viewMonth, ownerUserId, availLoading, settingsLoading, rules, overrides, durationMinutes, adminTimezone, settings?.booking_lead_hours, settings?.buffer_minutes, settings?.slot_increment_minutes, fetchScheduleForDates]);
+  const monthSchedule = useMonthSchedule(viewYear, viewMonth, ownerUserId, !availLoading && !settingsLoading, fetchScheduleForDates);
+  const fullyBookedDates = useMemo(() => monthSchedule
+    ? getFullyBookedDates(
+        viewYear, viewMonth, monthSchedule,
+        d => hasAvailability(d, rules, overrides),
+        (d, daySchedule) => generateTimeSlots(d, rules, overrides, daySchedule, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone)
+      )
+    : new Set<string>(), [monthSchedule, viewYear, viewMonth, rules, overrides, durationMinutes, adminTimezone, settings?.booking_lead_hours, settings?.buffer_minutes, settings?.slot_increment_minutes]);
 
   const loadSlots = useCallback(async (dateStr: string) => {
     setSlotsLoading(true);

@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useRescheduleProposals } from '@/hooks/useRescheduleProposals';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
+import { useMonthSchedule } from '@/hooks/useMonthSchedule';
 import { useAvailability } from '@/hooks/useAvailability';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -12,7 +13,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Badge from '@/components/ui/Badge';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import TimeSlotPicker from '@/components/calendar/TimeSlotPicker';
-import { formatTime, formatDisplayDate, generateTimeSlots, convertTimeSlot, convertTimeSlotWithDate, getTimezoneOptions, detectTimezone, classNames, type ScheduleBlock } from '@/lib/utils';
+import { formatTime, formatDisplayDate, generateTimeSlots, getFullyBookedDates, hasAvailability, convertTimeSlot, convertTimeSlotWithDate, getTimezoneOptions, detectTimezone, classNames, type ScheduleBlock } from '@/lib/utils';
 import { unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { supabase } from '@/lib/supabase';
 import type { RescheduleProposalWithSlots } from '@/hooks/useRescheduleProposals';
@@ -103,6 +104,15 @@ export default function RescheduleProposalPage() {
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [availableSlots]);
+
+  const monthSchedule = useMonthSchedule(viewYear, viewMonth, ownerUserId, !availLoading && !settingsLoading, fetchScheduleForDates);
+  const fullyBookedDates = useMemo(() => monthSchedule
+    ? getFullyBookedDates(
+        viewYear, viewMonth, monthSchedule,
+        d => hasAvailability(d, rules, overrides),
+        (d, daySchedule) => generateTimeSlots(d, rules, overrides, daySchedule, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone)
+      )
+    : new Set<string>(), [monthSchedule, viewYear, viewMonth, rules, overrides, durationMinutes, adminTimezone, settings?.booking_lead_hours, settings?.buffer_minutes, settings?.slot_increment_minutes]);
 
   const displayCalendarSlots = useMemo(() =>
     calendarSlots.map(s => convertTimeSlot(s, calendarDate || '', adminTimezone, clientTimezone)),
@@ -337,6 +347,7 @@ export default function RescheduleProposalPage() {
             rules={rules}
             overrides={overrides}
             maxDate={maxDate}
+            fullyBookedDates={fullyBookedDates}
           />
 
           {calendarDate && (
