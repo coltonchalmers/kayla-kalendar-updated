@@ -126,9 +126,9 @@ function createDefaultComponent(type: EmailComponentType): EmailComponent {
     case 'text':
       return { ...base, props: { type: 'text', text: 'Enter your text here.', textAlign: 'left' } };
     case 'button':
-      return { ...base, props: { type: 'button', text: 'Click Here', href: '#', buttonColor: '#059669', textColor: '#FFFFFF', textAlign: 'center' } };
+      return { ...base, props: { type: 'button', text: 'Click Here', href: '#', buttonColor: '#008000', textColor: '#FFFFFF', textAlign: 'center' } };
     case 'divider':
-      return { ...base, props: { type: 'divider', color: '#E5E7EB', padding: 16 } };
+      return { ...base, props: { type: 'divider', color: '#DCDCDC', padding: 16 } };
     case 'spacer':
       return { ...base, props: { type: 'spacer', height: 20 } };
     case 'image':
@@ -142,7 +142,7 @@ function createDefaultComponent(type: EmailComponentType): EmailComponent {
     case 'clientNotes':
       return { ...base, props: { type: 'clientNotes', label: 'Client Notes' } };
     case 'manageBookingLink':
-      return { ...base, props: { type: 'manageBookingLink', text: 'Manage Your Booking', buttonColor: '#059669' } };
+      return { ...base, props: { type: 'manageBookingLink', text: 'Manage Your Booking', buttonColor: '#008000' } };
     case 'bookingDetails':
       return { ...base, props: { type: 'bookingDetails', label: 'Booking Details' } };
     default:
@@ -516,7 +516,7 @@ function ComponentEditModal({
                 onChange={(e) => update('href', e.target.value)}
                 placeholder="https://..."
               />
-              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#059669', textColor: '#FFFFFF' }} alignDefault="left" />
+              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#008000', textColor: '#FFFFFF' }} alignDefault="left" />
             </>
           )}
 
@@ -525,7 +525,7 @@ function ComponentEditModal({
               <Input
                 label="Line Color"
                 type="color"
-                value={(props as DividerProps).color ?? '#E5E7EB'}
+                value={(props as DividerProps).color ?? '#DCDCDC'}
                 onChange={(e) => update('color', e.target.value)}
               />
               <Input
@@ -608,7 +608,7 @@ function ComponentEditModal({
                 value={(props as ManageBookingLinkProps).text ?? ''}
                 onChange={(e) => update('text', e.target.value)}
               />
-              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#059669', textColor: '#FFFFFF' }} alignDefault="center" />
+              <StyleFields values={props} onChange={update} colors={{ buttonColor: '#008000', textColor: '#FFFFFF' }} alignDefault="center" />
             </>
           )}
 
@@ -617,11 +617,11 @@ function ComponentEditModal({
           )}
 
           {component.type === 'zoom' && (
-            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F0FDF4', textColor: '#166534' }} />
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#EEF8EC', textColor: '#166534' }} />
           )}
 
           {component.type === 'phoneContact' && (
-            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F8FAFC', textColor: '#374151' }} />
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5', textColor: '#555555' }} />
           )}
 
           {component.type === 'notesToClient' && (
@@ -632,7 +632,7 @@ function ComponentEditModal({
                 onChange={(e) => update('label', e.target.value)}
                 placeholder="Notes from Jungo"
               />
-              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5', textColor: '#555555' }} />
             </>
           )}
 
@@ -644,16 +644,16 @@ function ComponentEditModal({
                 onChange={(e) => update('label', e.target.value)}
                 placeholder="Client Notes"
               />
-              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5', textColor: '#555555' }} />
             </>
           )}
 
           {component.type === 'rescheduleDetails' && (
-            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB' }} />
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5' }} />
           )}
 
           {component.type === 'changeDetails' && (
-            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+            <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5', textColor: '#555555' }} />
           )}
 
           {component.type === 'bookingDetails' && (
@@ -664,7 +664,7 @@ function ComponentEditModal({
                 onChange={(e) => update('label', e.target.value)}
                 placeholder="Booking Details"
               />
-              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F9FAFB', textColor: '#374151' }} />
+              <StyleFields values={props} onChange={update} colors={{ backgroundColor: '#F5F5F5', textColor: '#555555' }} />
             </>
           )}
         </div>

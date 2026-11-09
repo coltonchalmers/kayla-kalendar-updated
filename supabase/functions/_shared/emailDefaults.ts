@@ -13,7 +13,7 @@ function text(text: string): EmailComponent {
 }
 
 function button(btnText: string, href: string): EmailComponent {
-  return { id: makeId(), type: 'button', props: { type: 'button', text: btnText, href, buttonColor: '#059669', textColor: '#FFFFFF', textAlign: 'center' } };
+  return { id: makeId(), type: 'button', props: { type: 'button', text: btnText, href, buttonColor: '#008000', textColor: '#FFFFFF', textAlign: 'center' } };
 }
 
 function spacer(height: number): EmailComponent {
@@ -21,7 +21,7 @@ function spacer(height: number): EmailComponent {
 }
 
 function divider(): EmailComponent {
-  return { id: makeId(), type: 'divider', props: { type: 'divider', color: '#E5E7EB', padding: 16 } };
+  return { id: makeId(), type: 'divider', props: { type: 'divider', color: '#DCDCDC', padding: 16 } };
 }
 
 function staticBlock(type: EmailComponent['type']): EmailComponent {
@@ -33,7 +33,7 @@ function labeledBlock(type: 'notesToClient' | 'clientNotes', label: string): Ema
 }
 
 function manageBookingLink(btnText = 'Manage Your Booking'): EmailComponent {
-  return { id: makeId(), type: 'manageBookingLink', props: { type: 'manageBookingLink', text: btnText, buttonColor: '#059669' } };
+  return { id: makeId(), type: 'manageBookingLink', props: { type: 'manageBookingLink', text: btnText, buttonColor: '#008000' } };
 }
 
 function makeTemplate(subject: string, previewText: string, children: EmailComponent[]): EmailTemplate {

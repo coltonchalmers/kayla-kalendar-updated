@@ -72,7 +72,7 @@ function EmailPreviewInner({ template }: EmailPreviewProps) {
       .catch((err) => {
         if (!cancelled) {
           console.error('Email render error:', err);
-          setHtml('<p style="color:#999;padding:24px;text-align:center;">Preview failed to render.</p>');
+          setHtml('<p style="color:#8E8E8E;padding:24px;text-align:center;">Preview failed to render.</p>');
           setRendering(false);
         }
       });

@@ -12,8 +12,8 @@ import {
   Link,
 } from "npm:@react-email/components@0.0.36";
 
-const BRAND_GREEN = '#6AAA47';
-const CTA_GREEN = '#3F7A2A';
+const BRAND_GREEN = '#6BAC44';
+const CTA_GREEN = '#008000';
 const WEBSITE_URL = 'https://jungosolutions.com/';
 const CTA_TEXT = 'Branch Out with Jungo';
 
@@ -44,8 +44,8 @@ export function EmailShell({ previewText, children, assetBaseUrl }: EmailShellPr
         `}</style>
       </Head>
       <Preview>{previewText}</Preview>
-      <Body style={{ backgroundColor: '#F3F4F6', margin: 0, padding: 0, fontFamily: 'Inter, Arial, sans-serif' }}>
-        <table cellPadding={0} cellSpacing={0} border={0} width="100%" role="presentation" style={{ backgroundColor: '#F3F4F6' }}>
+      <Body style={{ backgroundColor: '#F5F5F5', margin: 0, padding: 0, fontFamily: 'Inter, Arial, sans-serif' }}>
+        <table cellPadding={0} cellSpacing={0} border={0} width="100%" role="presentation" style={{ backgroundColor: '#F5F5F5' }}>
           <tbody>
             <tr>
               <td align="center" style={{ padding: '24px 12px' }}>
