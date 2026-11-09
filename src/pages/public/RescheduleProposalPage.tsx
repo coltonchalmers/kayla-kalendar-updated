@@ -12,7 +12,8 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Badge from '@/components/ui/Badge';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import TimeSlotPicker from '@/components/calendar/TimeSlotPicker';
-import { formatTime, formatDisplayDate, generateTimeSlots, convertTimeSlot, convertTimeSlotWithDate, getTimezoneOptions, detectTimezone, classNames } from '@/lib/utils';
+import { formatTime, formatDisplayDate, generateTimeSlots, convertTimeSlot, convertTimeSlotWithDate, getTimezoneOptions, detectTimezone, classNames, type ScheduleBlock } from '@/lib/utils';
+import { unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { supabase } from '@/lib/supabase';
 import type { RescheduleProposalWithSlots } from '@/hooks/useRescheduleProposals';
 import type { Booking } from '@/lib/types';
@@ -31,7 +32,7 @@ export default function RescheduleProposalPage() {
   const [showCalendar, setShowCalendar] = useState(false);
 
   const ownerUserId = proposal?.user_id || booking?.user_id;
-  const { rescheduleBooking, fetchBookingsForDate } = useBookings({ autoFetch: false, userId: ownerUserId });
+  const { rescheduleBooking, fetchScheduleForDates } = useBookings({ autoFetch: false, userId: ownerUserId });
   const { settings, loading: settingsLoading } = useSettings(ownerUserId);
   const { rules, overrides, loading: availLoading } = useAvailability(ownerUserId);
 
@@ -40,6 +41,7 @@ export default function RescheduleProposalPage() {
   const [calendarSlot, setCalendarSlot] = useState<string | null>(null);
   const [calendarSlots, setCalendarSlots] = useState<string[]>([]);
   const [calendarSlotsLoading, setCalendarSlotsLoading] = useState(false);
+  const [calendarSlotsError, setCalendarSlotsError] = useState(false);
   const [clientTimezone, setClientTimezone] = useState(detectTimezone);
 
   const now = new Date();
@@ -109,12 +111,22 @@ export default function RescheduleProposalPage() {
 
   const loadCalendarSlots = useCallback(async (dateStr: string) => {
     setCalendarSlotsLoading(true);
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
+    setCalendarSlotsError(false);
+    let existing: ScheduleBlock[];
+    try {
+      existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setCalendarSlots([]);
+      setCalendarSlotsError(true);
+      setCalendarSlotsLoading(false);
+      return;
+    }
     const date = new Date(dateStr + 'T00:00:00');
     const available = generateTimeSlots(date, rules, overrides, existing, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone);
     setCalendarSlots(available);
     setCalendarSlotsLoading(false);
-  }, [rules, overrides, settings, fetchBookingsForDate, durationMinutes, adminTimezone, ownerUserId]);
+  }, [rules, overrides, settings, fetchScheduleForDates, durationMinutes, adminTimezone, ownerUserId]);
 
   const handleCalendarDateSelect = (dateStr: string) => {
     setCalendarDate(dateStr);
@@ -335,6 +347,7 @@ export default function RescheduleProposalPage() {
                 selectedSlot={calendarSlot ? convertTimeSlot(calendarSlot, calendarDate, adminTimezone, clientTimezone) : null}
                 onSelectSlot={handleCalendarSlotSelect}
                 loading={calendarSlotsLoading}
+                unavailableMessage={calendarSlotsError ? unavailableTimesMessage(settings?.contact_phone) : null}
                 timezone={clientTimezone}
               />
             </div>

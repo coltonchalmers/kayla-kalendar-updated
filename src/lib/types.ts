@@ -387,6 +387,8 @@ export interface GoogleCalendarConnection {
   disconnected_at: string | null;
   last_sync_at: string | null;
   last_error: string | null;
+  busy_calendar_ids: string[];
+  block_busy_times: boolean;
 }
 
 export interface ProposalLink {

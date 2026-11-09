@@ -1,4 +1,4 @@
-import { Clock, Globe } from 'lucide-react';
+import { CircleAlert as AlertCircle, Clock, Globe } from 'lucide-react';
 import { formatTime, formatDisplayDate, classNames, getTimezoneLabel } from '@/lib/utils';
 
 interface TimeSlotPickerProps {
@@ -8,9 +8,10 @@ interface TimeSlotPickerProps {
   onSelectSlot: (slot: string) => void;
   loading?: boolean;
   timezone?: string;
+  unavailableMessage?: string | null;
 }
 
-export default function TimeSlotPicker({ date, slots, selectedSlot, onSelectSlot, loading, timezone }: TimeSlotPickerProps) {
+export default function TimeSlotPicker({ date, slots, selectedSlot, onSelectSlot, loading, timezone, unavailableMessage }: TimeSlotPickerProps) {
   return (
     <div className="animate-slide-up">
       <h3 className="text-lg font-semibold text-gray-900 mb-1">{formatDisplayDate(date)}</h3>
@@ -27,6 +28,11 @@ export default function TimeSlotPicker({ date, slots, selectedSlot, onSelectSlot
         <div className="flex items-center justify-center py-12 text-gray-400">
           <Clock className="w-5 h-5 animate-spin mr-2" />
           Loading times...
+        </div>
+      ) : unavailableMessage ? (
+        <div className="text-center py-12">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+          <p className="text-gray-700 font-medium max-w-sm mx-auto">{unavailableMessage}</p>
         </div>
       ) : slots.length === 0 ? (
         <div className="text-center py-12">

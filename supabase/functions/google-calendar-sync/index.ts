@@ -409,6 +409,114 @@ async function sweepSync(supabase: ReturnType<typeof createClient>): Promise<{ p
 }
 
 // ============================================================
+// Busy time lookup
+// ============================================================
+
+const MAX_BUSY_RANGE_DAYS = 62;
+
+function isDateString(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function shiftDateString(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+function timeZoneOffsetMs(date: Date, tz: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const p: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") p[part.type] = Number(part.value);
+  }
+  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour === 24 ? 0 : p.hour, p.minute, p.second);
+  return asUtc - date.getTime();
+}
+
+function localMidnight(dateStr: string, tz: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const wallClock = new Date(Date.UTC(y, m - 1, d));
+  return new Date(wallClock.getTime() - timeZoneOffsetMs(wallClock, tz));
+}
+
+function minutesToLabel(totalMinutes: number): string {
+  const capped = Math.min(totalMinutes, 24 * 60);
+  const h = Math.floor(capped / 60);
+  const m = capped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function splitIntervalByDay(start: Date, end: Date, tz: string, fromDate: string, toDate: string) {
+  const blocks: { date: string; start_time: string; end_time: string }[] = [];
+  for (let day = fromDate; day <= toDate; day = shiftDateString(day, 1)) {
+    const dayStart = localMidnight(day, tz).getTime();
+    const dayEnd = localMidnight(shiftDateString(day, 1), tz).getTime();
+    const s = Math.max(start.getTime(), dayStart);
+    const e = Math.min(end.getTime(), dayEnd);
+    if (s >= e) continue;
+    blocks.push({
+      date: day,
+      start_time: minutesToLabel(Math.round((s - dayStart) / 60000)),
+      end_time: minutesToLabel(Math.round((e - dayStart) / 60000)),
+    });
+  }
+  return blocks;
+}
+
+async function listBusyIntervals(
+  accessToken: string,
+  calendarId: string,
+  timeMin: string,
+  timeMax: string,
+  ownEventIds: Set<string>,
+  tz: string
+): Promise<{ start: Date; end: Date }[]> {
+  const intervals: { start: Date; end: Date }[] = [];
+  let pageToken: string | undefined;
+
+  for (let page = 0; page < 10; page++) {
+    const params = new URLSearchParams({
+      timeMin,
+      timeMax,
+      singleEvents: "true",
+      maxResults: "250",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Event list failed: ${err}`);
+    }
+
+    const data = await res.json();
+    for (const ev of data.items ?? []) {
+      if (ev.status === "cancelled" || ev.transparency === "transparent") continue;
+      if (ownEventIds.has(ev.id)) continue;
+      if (ev.attendees?.some((a: { self?: boolean; responseStatus?: string }) => a.self && a.responseStatus === "declined")) continue;
+
+      if (ev.start?.date && ev.end?.date) {
+        intervals.push({ start: localMidnight(ev.start.date, tz), end: localMidnight(ev.end.date, tz) });
+      } else if (ev.start?.dateTime && ev.end?.dateTime) {
+        intervals.push({ start: new Date(ev.start.dateTime), end: new Date(ev.end.dateTime) });
+      }
+    }
+
+    pageToken = data.nextPageToken;
+    if (!pageToken) break;
+  }
+
+  return intervals;
+}
+
+// ============================================================
 // Main handler
 // ============================================================
 
@@ -525,6 +633,97 @@ Deno.serve(async (req: Request) => {
     if (mode === "sweep") {
       const result = await sweepSync(supabase);
       return jsonResponse(result);
+    }
+
+    // ---- List calendars on the connected account ----
+    if (mode === "list-calendars") {
+      const userId = body.userId as string;
+      if (!userId) return jsonResponse({ error: "Missing userId" }, 400);
+
+      const { data: connection } = await supabase
+        .from("google_calendar_connections")
+        .select("*")
+        .eq("user_id", userId)
+        .is("disconnected_at", null)
+        .maybeSingle();
+      if (!connection) return jsonResponse({ error: "No active Google connection" }, 404);
+
+      const accessToken = await getValidAccessToken(supabase, connection);
+      const res = await fetch(`${GOOGLE_CALENDAR_API}/users/me/calendarList?minAccessRole=reader`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Calendar list failed: ${err}`);
+      }
+      const data = await res.json();
+      const calendars = (data.items ?? []).map((c: { id: string; summary?: string; primary?: boolean }) => ({
+        id: c.id,
+        name: c.summary || c.id,
+        primary: !!c.primary,
+      }));
+      return jsonResponse({ calendars });
+    }
+
+    // ---- Busy periods for client booking pages (no event details returned) ----
+    if (mode === "busy") {
+      const userId = body.userId as string;
+      const startDate = body.startDate;
+      const endDate = body.endDate;
+      if (!userId || !isDateString(startDate) || !isDateString(endDate) || endDate < startDate) {
+        return jsonResponse({ error: "Missing userId, startDate or endDate" }, 400);
+      }
+      const rangeDays = (Date.parse(endDate) - Date.parse(startDate)) / 86400000 + 1;
+      if (rangeDays > MAX_BUSY_RANGE_DAYS) {
+        return jsonResponse({ error: "Date range too large" }, 400);
+      }
+
+      const { data: settings } = await supabase
+        .from("admin_settings")
+        .select("timezone, contact_phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const timezone = settings?.timezone || "America/New_York";
+
+      const { data: connection } = await supabase
+        .from("google_calendar_connections")
+        .select("*")
+        .eq("user_id", userId)
+        .is("disconnected_at", null)
+        .maybeSingle();
+
+      const calendarIds: string[] = connection?.busy_calendar_ids ?? [];
+      if (!connection || !connection.block_busy_times || calendarIds.length === 0) {
+        return jsonResponse({ enabled: false, blocks: [] });
+      }
+
+      try {
+        const accessToken = await getValidAccessToken(supabase, connection);
+        const timeMin = localMidnight(startDate, timezone).toISOString();
+        const timeMax = localMidnight(shiftDateString(endDate, 1), timezone).toISOString();
+
+        const { data: ownBookings, error: ownErr } = await supabase
+          .from("bookings")
+          .select("google_event_id")
+          .eq("user_id", userId)
+          .not("google_event_id", "is", null);
+        if (ownErr) throw ownErr;
+        const ownEventIds = new Set<string>((ownBookings ?? []).map((b: { google_event_id: string }) => b.google_event_id));
+
+        const intervals = (
+          await Promise.all(
+            calendarIds.map(id => listBusyIntervals(accessToken, id, timeMin, timeMax, ownEventIds, timezone))
+          )
+        ).flat();
+        const blocks = intervals.flatMap(i => splitIntervalByDay(i.start, i.end, timezone, startDate, endDate));
+        return jsonResponse({ enabled: true, blocks });
+      } catch (err) {
+        console.error("Busy time lookup failed:", err);
+        return jsonResponse(
+          { error: "Google Calendar is unavailable right now", contactPhone: settings?.contact_phone ?? null },
+          503
+        );
+      }
     }
 
     return jsonResponse({ error: "Unknown mode" }, 400);

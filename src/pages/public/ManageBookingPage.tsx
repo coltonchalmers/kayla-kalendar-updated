@@ -4,7 +4,8 @@ import { Calendar, Clock, XCircle, CalendarClock, AlertTriangle, CheckCircle } f
 import { useAvailability } from '@/hooks/useAvailability';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
-import { generateTimeSlots, formatTime, formatDisplayDate, minutesToTime, timeToMinutes, getMeetingInstantUTC } from '@/lib/utils';
+import { generateTimeSlots, formatTime, formatDisplayDate, minutesToTime, timeToMinutes, getMeetingInstantUTC, type ScheduleBlock } from '@/lib/utils';
+import { unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerBookingEmails } from '@/lib/bookingEmails';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import TimeSlotPicker from '@/components/calendar/TimeSlotPicker';
@@ -29,7 +30,7 @@ export default function ManageBookingPage() {
 
   const ownerUserId = booking?.user_id;
   const { rules, overrides, loading: availLoading } = useAvailability(ownerUserId);
-  const { fetchBookingByToken, rescheduleBooking, cancelBooking, fetchBookingsForDate } = useBookings({ autoFetch: false, userId: ownerUserId });
+  const { fetchBookingByToken, rescheduleBooking, cancelBooking, fetchScheduleForDates } = useBookings({ autoFetch: false, userId: ownerUserId });
   const { settings, loading: settingsLoading } = useSettings(ownerUserId);
 
   const now = new Date();
@@ -39,6 +40,7 @@ export default function ManageBookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
 
   useEffect(() => {
@@ -66,8 +68,18 @@ export default function ManageBookingPage() {
   const loadSlots = useCallback(async (dateStr: string) => {
     if (!booking) return;
     setSlotsLoading(true);
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
-    const othersOnDay = existing.filter((b: Booking) => b.id !== booking.id);
+    setSlotsError(false);
+    let existing: ScheduleBlock[];
+    try {
+      existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setSlots([]);
+      setSlotsError(true);
+      setSlotsLoading(false);
+      return;
+    }
+    const othersOnDay = existing.filter(b => b.id !== booking.id);
     const date = new Date(dateStr + 'T00:00:00');
     const available = generateTimeSlots(
       date, rules, overrides, othersOnDay,
@@ -78,7 +90,7 @@ export default function ManageBookingPage() {
     );
     setSlots(available);
     setSlotsLoading(false);
-  }, [rules, overrides, booking, fetchBookingsForDate, leadHours, settings?.buffer_minutes, ownerUserId]);
+  }, [rules, overrides, booking, fetchScheduleForDates, leadHours, settings?.buffer_minutes, ownerUserId]);
 
   const handleDateSelect = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -290,6 +302,7 @@ export default function ManageBookingPage() {
                 selectedSlot={selectedSlot}
                 onSelectSlot={setSelectedSlot}
                 loading={slotsLoading}
+                unavailableMessage={slotsError ? unavailableTimesMessage(settings?.contact_phone) : null}
               />
             </div>
           )}

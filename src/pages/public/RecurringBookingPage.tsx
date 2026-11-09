@@ -17,7 +17,8 @@ import { useAvailability } from '@/hooks/useAvailability';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
 import { useRecurringLinks } from '@/hooks/useRecurringLinks';
-import { generateTimeSlots, generateSlotsInRange, formatDate, formatDisplayDate, formatTime, addDays, addMonths, detectTimezone, getTimezoneOptions, timeToMinutes, convertTimeSlot, convertTimeSlotWithDate, isDateSelectable } from '@/lib/utils';
+import { generateTimeSlots, generateSlotsInRange, formatDate, formatDisplayDate, formatTime, addDays, addMonths, detectTimezone, getTimezoneOptions, timeToMinutes, convertTimeSlot, convertTimeSlotWithDate, isDateSelectable, type ScheduleBlock } from '@/lib/utils';
+import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerRecurringConfirmationEmail } from '@/lib/bookingEmails';
 import type { Booking, RecurringLink, MeetingType, TimeRestriction, BookingStep } from '@/lib/types';
 
@@ -42,7 +43,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 function generateSlotsForRestrictions(
   date: Date,
   restrictions: TimeRestriction[],
-  existingBookings: Booking[],
+  existingBookings: ScheduleBlock[],
   durationMinutes: number,
   leadHours: number,
   bufferMinutes: number,
@@ -71,7 +72,7 @@ export default function RecurringBookingPage() {
 
   const ownerUserId = link?.user_id;
   const { rules, overrides, loading: availLoading } = useAvailability(ownerUserId);
-  const { createBooking, fetchBookingsForDate } = useBookings({ autoFetch: false, userId: ownerUserId });
+  const { createBooking, fetchScheduleForDates } = useBookings({ autoFetch: false, userId: ownerUserId });
   const { settings, loading: settingsLoading } = useSettings(ownerUserId);
 
   // Steps: calendar -> time -> recurrence -> conflicts -> form -> confirm
@@ -80,6 +81,7 @@ export default function RecurringBookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [clientTimezone, setClientTimezone] = useState(detectTimezone);
@@ -162,7 +164,17 @@ export default function RecurringBookingPage() {
 
   const loadSlots = useCallback(async (dateStr: string) => {
     setSlotsLoading(true);
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
+    setSlotsError(false);
+    let existing: ScheduleBlock[];
+    try {
+      existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setSlots([]);
+      setSlotsError(true);
+      setSlotsLoading(false);
+      return;
+    }
     const date = new Date(dateStr + 'T00:00:00');
 
     let available: string[];
@@ -174,7 +186,7 @@ export default function RecurringBookingPage() {
 
     setSlots(available);
     setSlotsLoading(false);
-  }, [rules, overrides, settings, fetchBookingsForDate, durationMinutes, activeRestrictions, leadHours, bufferMinutes, slotIncrement, adminTimezone, ownerUserId]);
+  }, [rules, overrides, settings, fetchScheduleForDates, durationMinutes, activeRestrictions, leadHours, bufferMinutes, slotIncrement, adminTimezone, ownerUserId]);
 
   const handleDateSelect = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -324,12 +336,14 @@ export default function RecurringBookingPage() {
       }
 
       if (!isConflict) {
-        const existing = await fetchBookingsForDate(date, ownerUserId);
-        let filtered: string[];
-        if (activeRestrictions) {
-          filtered = generateSlotsForRestrictions(dateObj, activeRestrictions, existing, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
-        } else {
-          filtered = generateTimeSlots(dateObj, rules, overrides, existing, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
+        const existing = await fetchScheduleForDates(date, date, ownerUserId).catch(() => null);
+        let filtered: string[] = [];
+        if (existing) {
+          if (activeRestrictions) {
+            filtered = generateSlotsForRestrictions(dateObj, activeRestrictions, existing, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
+          } else {
+            filtered = generateTimeSlots(dateObj, rules, overrides, existing, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
+          }
         }
 
         if (!filtered.includes(selectedSlot!)) {
@@ -353,11 +367,20 @@ export default function RecurringBookingPage() {
     } else {
       setStep('form');
     }
-  }, [recurringDates, selectedSlot, activeRestrictions, fetchBookingsForDate, rules, overrides, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone, ownerUserId]);
+  }, [recurringDates, selectedSlot, activeRestrictions, fetchScheduleForDates, rules, overrides, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone, ownerUserId]);
 
   const loadRescheduleSlots = useCallback(async (conflictIndex: number, dateStr: string) => {
     setRescheduleSlotsLoading(prev => ({ ...prev, [conflictIndex]: true }));
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
+    let existing: ScheduleBlock[];
+    try {
+      existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setConflictError(unavailableTimesMessage(settings?.contact_phone));
+      setRescheduleSlots(prev => ({ ...prev, [conflictIndex]: [] }));
+      setRescheduleSlotsLoading(prev => ({ ...prev, [conflictIndex]: false }));
+      return;
+    }
     const dateObj = new Date(dateStr + 'T00:00:00');
     let available: string[];
     if (activeRestrictions) {
@@ -368,7 +391,7 @@ export default function RecurringBookingPage() {
 
     setRescheduleSlots(prev => ({ ...prev, [conflictIndex]: available }));
     setRescheduleSlotsLoading(prev => ({ ...prev, [conflictIndex]: false }));
-  }, [fetchBookingsForDate, rules, overrides, durationMinutes, leadHours, bufferMinutes, slotIncrement, activeRestrictions, adminTimezone, ownerUserId]);
+  }, [fetchScheduleForDates, rules, overrides, durationMinutes, leadHours, bufferMinutes, slotIncrement, activeRestrictions, adminTimezone, ownerUserId, settings]);
 
   const handleConflictResolution = (index: number, resolution: ConflictResolution) => {
     setSessionConflicts(prev => prev.map(c =>
@@ -461,7 +484,7 @@ export default function RecurringBookingPage() {
       if (link) await markLinkAsUsed(link.id);
     } catch (err) {
       console.error(err);
-      alert('Something went wrong. Please try again.');
+      alert(err instanceof SlotUnavailableError ? unavailableTimesMessage(settings?.contact_phone) : 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -635,6 +658,7 @@ export default function RecurringBookingPage() {
               selectedSlot={selectedSlot ? convertTimeSlot(selectedSlot, selectedDate, adminTimezone, clientTimezone) : null}
               onSelectSlot={handleSlotSelect}
               loading={slotsLoading}
+              unavailableMessage={slotsError ? unavailableTimesMessage(settings?.contact_phone) : null}
               timezone={clientTimezone}
             />
 

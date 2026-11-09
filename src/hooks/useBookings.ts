@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabase';
 import type { Booking, BookingChange, MeetingLocationType } from '@/lib/types';
 import { minutesToTime, timeToMinutes } from '@/lib/utils';
 import { triggerBookingEmails, triggerAdminChangeNotification, type ClientChangeField } from '@/lib/bookingEmails';
-import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync';
+import { triggerGoogleCalendarSync, fetchGoogleBusyBlocks, SlotUnavailableError } from '@/lib/googleCalendarSync';
+import type { ScheduleBlock } from '@/lib/utils';
 
 interface BookingInput {
   first_name: string;
@@ -126,6 +127,17 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     const endMinutes = timeToMinutes(input.start_time) + input.duration_minutes;
     const end_time = minutesToTime(endMinutes);
     const bookingToken = crypto.randomUUID();
+
+    if (input.user_id && input.source !== 'admin') {
+      const busyBlocks = await fetchGoogleBusyBlocks(input.user_id, input.date, input.date);
+      const startMin = timeToMinutes(input.start_time);
+      const clashes = busyBlocks.some(b =>
+        b.date === input.date &&
+        startMin < timeToMinutes(b.end_time) &&
+        endMinutes > timeToMinutes(b.start_time)
+      );
+      if (clashes) throw new SlotUnavailableError();
+    }
 
     const { data, error: mutationError } = await supabase
       .from('bookings')
@@ -538,6 +550,32 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     return data || [];
   }, [options?.userId]);
 
+  const fetchScheduleForDates = useCallback(async (
+    startDate: string,
+    endDate: string,
+    userIdOverride?: string
+  ): Promise<ScheduleBlock[]> => {
+    const uid = userIdOverride || options?.userId;
+
+    let bookingQuery = supabase
+      .from('bookings')
+      .select('id, date, start_time, end_time, status')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .neq('status', 'cancelled');
+    if (uid) {
+      bookingQuery = bookingQuery.eq('user_id', uid);
+    }
+
+    const [{ data, error: queryError }, busyBlocks] = await Promise.all([
+      bookingQuery,
+      uid ? fetchGoogleBusyBlocks(uid, startDate, endDate) : Promise.resolve([]),
+    ]);
+
+    if (queryError) throw queryError;
+    return [...(data || []), ...busyBlocks];
+  }, [options?.userId]);
+
   const fetchRecurringGroup = useCallback(async (groupId: string) => {
     const { data, error: queryError } = await supabase
       .from('bookings')
@@ -637,6 +675,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     updateBookingDetails,
     fetchBookingByToken,
     fetchBookingsForDate,
+    fetchScheduleForDates,
     fetchRecurringGroup,
     fetchBookingChanges,
     updateBookingNotes,

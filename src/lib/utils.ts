@@ -1,10 +1,12 @@
 import type { AvailabilityRule, AvailabilityOverride, Booking, TimeRestriction } from './types';
 
+export type ScheduleBlock = Pick<Booking, 'date' | 'start_time' | 'end_time'> & { id?: string; status?: Booking['status'] };
+
 export function generateTimeSlots(
   date: Date,
   rules: AvailabilityRule[],
   overrides: AvailabilityOverride[],
-  existingBookings: Booking[],
+  existingBookings: ScheduleBlock[],
   durationMinutes: number,
   leadHours: number,
   bufferMinutes: number = 0,
@@ -66,7 +68,7 @@ export function generateSlotsInRange(
   date: Date,
   timeStart: string,
   timeEnd: string,
-  existingBookings: Booking[],
+  existingBookings: ScheduleBlock[],
   durationMinutes: number,
   leadHours: number,
   bufferMinutes: number = 0,
@@ -102,6 +104,29 @@ export function generateSlotsInRange(
   }
 
   return slots;
+}
+
+export function getFullyBookedDates(
+  year: number,
+  month: number,
+  rules: AvailabilityRule[],
+  overrides: AvailabilityOverride[],
+  schedule: ScheduleBlock[],
+  durationMinutes: number,
+  leadHours: number,
+  bufferMinutes: number,
+  slotIncrement: number,
+  adminTimezone: string
+): Set<string> {
+  const blocked = new Set<string>();
+  for (const { date, isCurrentMonth } of getMonthDays(year, month)) {
+    if (!isCurrentMonth || isPast(date) || !hasAvailability(date, rules, overrides)) continue;
+    const dateStr = formatDate(date);
+    const daySchedule = schedule.filter(b => b.date === dateStr);
+    const slots = generateTimeSlots(date, rules, overrides, daySchedule, durationMinutes, leadHours, bufferMinutes, slotIncrement, adminTimezone);
+    if (slots.length === 0) blocked.add(dateStr);
+  }
+  return blocked;
 }
 
 export function hasAvailability(

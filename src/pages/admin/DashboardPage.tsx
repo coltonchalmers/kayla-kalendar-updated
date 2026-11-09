@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Users, Clock, TrendingUp, ArrowRight, Mail, Link2, Copy, Check, Repeat } from 'lucide-react';
+import { CalendarDays, Users, Clock, TrendingUp, ArrowRight, Mail, Link2, Copy, Check, Repeat, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
@@ -7,6 +8,7 @@ import { useRecurringLinks } from '@/hooks/useRecurringLinks';
 import { useProposalLinks } from '@/hooks/useProposalLinks';
 import { useMeetingTypes } from '@/hooks/useMeetingTypes';
 import { useAvailability } from '@/hooks/useAvailability';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const { proposals } = useProposalLinks();
   const { meetingTypes } = useMeetingTypes();
   const { rules, overrides } = useAvailability();
+  const { connection: googleConnection } = useGoogleCalendar();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [viewInvite, setViewInvite] = useState<{ type: 'recurring' | 'proposal'; data: any } | null>(null);
@@ -96,6 +99,18 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {googleConnection?.block_busy_times && googleConnection.last_error && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+          <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-amber-800">Google Calendar needs attention</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Your Google Calendar connection has an error, so clients may be shown times you are busy. Reconnect it in{' '}
+              <Link to="/admin/settings" className="font-medium underline underline-offset-2 hover:text-amber-900">Settings</Link>.
+            </p>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Welcome back! Here's your scheduling overview.</p>

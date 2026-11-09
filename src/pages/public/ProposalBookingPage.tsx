@@ -16,7 +16,8 @@ import { useProposalLinks } from '@/hooks/useProposalLinks';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
 import { useAvailability } from '@/hooks/useAvailability';
-import { generateTimeSlots, formatDate, formatDisplayDate, formatTime, detectTimezone, getTimezoneOptions, classNames, convertTimeSlot, convertTimeSlotWithDate, getMeetingInstantUTC } from '@/lib/utils';
+import { generateTimeSlots, formatDate, formatDisplayDate, formatTime, detectTimezone, getTimezoneOptions, classNames, convertTimeSlot, convertTimeSlotWithDate, getMeetingInstantUTC, type ScheduleBlock } from '@/lib/utils';
+import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerBookingEmails } from '@/lib/bookingEmails';
 import type { Booking, MeetingType, ProposalSlot, BookingStep } from '@/lib/types';
 import type { ProposalLinkWithSlots } from '@/hooks/useProposalLinks';
@@ -32,7 +33,7 @@ export default function ProposalBookingPage() {
   const [error, setError] = useState(false);
 
   const ownerUserId = proposal?.user_id;
-  const { createBooking, fetchBookingsForDate } = useBookings({ autoFetch: false, userId: ownerUserId });
+  const { createBooking, fetchScheduleForDates } = useBookings({ autoFetch: false, userId: ownerUserId });
   const { settings, loading: settingsLoading } = useSettings(ownerUserId);
   const { rules, overrides, loading: availLoading } = useAvailability(ownerUserId);
 
@@ -45,6 +46,7 @@ export default function ProposalBookingPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarSlots, setCalendarSlots] = useState<string[]>([]);
   const [calendarSlotsLoading, setCalendarSlotsLoading] = useState(false);
+  const [calendarSlotsError, setCalendarSlotsError] = useState(false);
   const [clientTimezone, setClientTimezone] = useState(detectTimezone);
 
   const now = new Date();
@@ -121,12 +123,22 @@ export default function ProposalBookingPage() {
 
   const loadCalendarSlots = useCallback(async (dateStr: string) => {
     setCalendarSlotsLoading(true);
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
+    setCalendarSlotsError(false);
+    let existing: ScheduleBlock[];
+    try {
+      existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setCalendarSlots([]);
+      setCalendarSlotsError(true);
+      setCalendarSlotsLoading(false);
+      return;
+    }
     const date = new Date(dateStr + 'T00:00:00');
     const available = generateTimeSlots(date, rules, overrides, existing, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone);
     setCalendarSlots(available);
     setCalendarSlotsLoading(false);
-  }, [rules, overrides, settings, fetchBookingsForDate, durationMinutes, meetingType, ownerUserId]);
+  }, [rules, overrides, settings, fetchScheduleForDates, durationMinutes, meetingType, ownerUserId]);
 
   const handleCalendarDateSelect = (dateStr: string) => {
     setCalendarDate(dateStr);
@@ -211,7 +223,7 @@ export default function ProposalBookingPage() {
       }
     } catch (err) {
       console.error('Booking error:', err);
-      alert('This slot may have just been booked by someone else, or something went wrong. Please try another slot.');
+      alert(err instanceof SlotUnavailableError ? unavailableTimesMessage(settings?.contact_phone) : 'This slot may have just been booked by someone else, or something went wrong. Please try another slot.');
       setStep('slots');
       setSelectedSlot(null);
       setCalendarSlot(null);
@@ -416,6 +428,7 @@ export default function ProposalBookingPage() {
                   selectedSlot={calendarSlot ? convertTimeSlot(calendarSlot, calendarDate, adminTimezone, clientTimezone) : null}
                   onSelectSlot={handleCalendarSlotSelect}
                   loading={calendarSlotsLoading}
+                  unavailableMessage={calendarSlotsError ? unavailableTimesMessage(settings?.contact_phone) : null}
                   timezone={clientTimezone}
                 />
               </div>

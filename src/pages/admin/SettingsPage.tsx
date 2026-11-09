@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Save, Check, Mail, Settings2, RotateCcw, ChevronDown, Calendar, Video, AlertTriangle, Link2, Unlink, Loader2, Send } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import GoogleBusyTimesSettings from '@/components/admin/GoogleBusyTimesSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { triggerDummyEmail } from '@/lib/bookingEmails';
 import { defaultEmailTemplates } from '@/lib/emailDefaults';
@@ -66,7 +67,7 @@ function GoogleCalendarCard({
   autoSync: boolean;
   onAutoSyncChange: (v: boolean) => void;
 }) {
-  const { connection, loading, connecting, connect, disconnect, error } = useGoogleCalendar();
+  const { connection, loading, connecting, connect, disconnect, error, refresh } = useGoogleCalendar();
   const isConnected = !!connection && !connection.disconnected_at;
 
   return (
@@ -115,6 +116,10 @@ function GoogleCalendarCard({
             />
             <span className="text-sm font-medium text-gray-700">Automatically add meetings to my Google Calendar</span>
           </label>
+
+          {connection && (
+            <GoogleBusyTimesSettings connection={connection} onSaved={refresh} />
+          )}
 
           {connection?.last_error && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">

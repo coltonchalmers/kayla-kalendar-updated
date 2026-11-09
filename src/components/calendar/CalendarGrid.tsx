@@ -18,6 +18,7 @@ interface CalendarGridProps {
   allowAllFutureDates?: boolean;
   timeRestrictions?: TimeRestriction[] | null;
   bookingsForDay?: (date: string) => Booking[];
+  fullyBookedDates?: Set<string>;
 }
 
 export default function CalendarGrid({
@@ -34,6 +35,7 @@ export default function CalendarGrid({
   allowAllFutureDates = false,
   timeRestrictions = null,
   bookingsForDay,
+  fullyBookedDates,
 }: CalendarGridProps) {
   const [slideDir, setSlideDir] = useState<1 | -1>(1);
   const days = useMemo(() => getMonthDays(year, month), [year, month]);
@@ -86,7 +88,8 @@ export default function CalendarGrid({
           const today = isToday(day);
           const hasAvail = !past && !beyondMax && hasAvailability(day, rules, overrides);
           const hasRestrictions = !!timeRestrictions && timeRestrictions.length > 0;
-          const selectable = isCurrentMonth && (allowAllFutureDates ? (!past && !beyondMax) : (hasRestrictions ? !past && !beyondMax && isDateSelectable(day, rules, overrides, timeRestrictions) : hasAvail));
+          const fullyBooked = isCurrentMonth && !!fullyBookedDates?.has(dateStr);
+          const selectable = isCurrentMonth && !fullyBooked && (allowAllFutureDates ? (!past && !beyondMax) : (hasRestrictions ? !past && !beyondMax && isDateSelectable(day, rules, overrides, timeRestrictions) : hasAvail));
           const selected = dateStr === selectedDate;
           const dayBookings = bookingsForDay ? bookingsForDay(dateStr).filter(b => b.status !== 'cancelled') : [];
           const bookingCount = dayBookings.length;
@@ -109,8 +112,8 @@ export default function CalendarGrid({
                   ? hasAvail
                     ? 'bg-jungo-green-50 text-jungo-green-700 hover:bg-jungo-green-100 hover:shadow-sm cursor-pointer'
                     : 'bg-gray-50 text-gray-900 hover:bg-gray-100 hover:shadow-sm cursor-pointer'
-                  : isCurrentMonth
-                  ? 'text-gray-300 cursor-not-allowed'
+                  : fullyBooked
+                  ? 'bg-gray-100 text-gray-400 line-through cursor-not-allowed'
                   : 'text-gray-300 cursor-not-allowed'
               )}
             >

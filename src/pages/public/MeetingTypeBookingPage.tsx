@@ -15,7 +15,8 @@ import { useAvailability } from '@/hooks/useAvailability';
 import { useBookings } from '@/hooks/useBookings';
 import { useSettings } from '@/hooks/useSettings';
 import { useMeetingTypes } from '@/hooks/useMeetingTypes';
-import { generateTimeSlots, formatDate, detectTimezone, getTimezoneOptions, convertTimeSlot, convertTimeSlotWithDate } from '@/lib/utils';
+import { generateTimeSlots, getFullyBookedDates, formatDate, detectTimezone, getTimezoneOptions, convertTimeSlot, convertTimeSlotWithDate } from '@/lib/utils';
+import { SlotUnavailableError, unavailableTimesMessage } from '@/lib/googleCalendarSync';
 import { triggerBookingEmails } from '@/lib/bookingEmails';
 import type { Booking, MeetingType, BookingStep } from '@/lib/types';
 
@@ -28,7 +29,7 @@ export default function MeetingTypeBookingPage() {
 
   const ownerUserId = meetingType?.user_id;
   const { rules, overrides, loading: availLoading } = useAvailability(ownerUserId);
-  const { createBooking, fetchBookingsForDate } = useBookings({ autoFetch: false, userId: ownerUserId });
+  const { createBooking, fetchScheduleForDates } = useBookings({ autoFetch: false, userId: ownerUserId });
   const { settings, loading: settingsLoading } = useSettings(ownerUserId);
 
   const [step, setStep] = useState<BookingStep>('calendar');
@@ -39,6 +40,8 @@ export default function MeetingTypeBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [clientTimezone, setClientTimezone] = useState(detectTimezone);
+  const [slotsError, setSlotsError] = useState(false);
+  const [fullyBookedDates, setFullyBookedDates] = useState<Set<string>>(new Set());
 
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -69,14 +72,42 @@ export default function MeetingTypeBookingPage() {
   const durationMinutes = meetingType?.duration_minutes || 30;
   const adminTimezone = settings?.timezone || 'America/New_York';
 
+  useEffect(() => {
+    if (!ownerUserId || availLoading || settingsLoading) return;
+    let cancelled = false;
+    const monthStart = formatDate(new Date(viewYear, viewMonth, 1));
+    const monthEnd = formatDate(new Date(viewYear, viewMonth + 1, 0));
+    fetchScheduleForDates(monthStart, monthEnd, ownerUserId)
+      .then(schedule => {
+        if (cancelled) return;
+        setFullyBookedDates(getFullyBookedDates(
+          viewYear, viewMonth, rules, overrides, schedule, durationMinutes,
+          settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0,
+          settings?.slot_increment_minutes ?? 15, adminTimezone
+        ));
+      })
+      .catch(() => {
+        if (!cancelled) setFullyBookedDates(new Set());
+      });
+    return () => { cancelled = true; };
+  }, [viewYear, viewMonth, ownerUserId, availLoading, settingsLoading, rules, overrides, durationMinutes, adminTimezone, settings?.booking_lead_hours, settings?.buffer_minutes, settings?.slot_increment_minutes, fetchScheduleForDates]);
+
   const loadSlots = useCallback(async (dateStr: string) => {
     setSlotsLoading(true);
-    const existing = await fetchBookingsForDate(dateStr, ownerUserId);
-    const date = new Date(dateStr + 'T00:00:00');
-    const available = generateTimeSlots(date, rules, overrides, existing, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone);
-    setSlots(available);
-    setSlotsLoading(false);
-  }, [rules, overrides, settings, fetchBookingsForDate, durationMinutes, adminTimezone, ownerUserId]);
+    setSlotsError(false);
+    try {
+      const existing = await fetchScheduleForDates(dateStr, dateStr, ownerUserId);
+      const date = new Date(dateStr + 'T00:00:00');
+      const available = generateTimeSlots(date, rules, overrides, existing, durationMinutes, settings?.booking_lead_hours || 2, settings?.buffer_minutes ?? 0, settings?.slot_increment_minutes ?? 15, adminTimezone);
+      setSlots(available);
+    } catch (err) {
+      console.error('Error loading available times:', err);
+      setSlots([]);
+      setSlotsError(true);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, [rules, overrides, settings, fetchScheduleForDates, durationMinutes, adminTimezone, ownerUserId]);
 
   const displaySlots = useMemo(() =>
     slots.map(s => convertTimeSlot(s, selectedDate || '', adminTimezone, clientTimezone)),
@@ -123,7 +154,9 @@ export default function MeetingTypeBookingPage() {
       triggerBookingEmails(booking.id);
     } catch (err) {
       console.error('Booking error:', err);
-      alert('Something went wrong booking your appointment. Please try again.');
+      alert(err instanceof SlotUnavailableError
+        ? unavailableTimesMessage(settings?.contact_phone)
+        : 'Something went wrong booking your appointment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -221,6 +254,7 @@ export default function MeetingTypeBookingPage() {
               rules={rules}
               overrides={overrides}
               maxDate={maxDate}
+              fullyBookedDates={fullyBookedDates}
             />
           </>
         )}
@@ -233,6 +267,7 @@ export default function MeetingTypeBookingPage() {
             onSelectSlot={handleSlotSelect}
             loading={slotsLoading}
             timezone={clientTimezone}
+            unavailableMessage={slotsError ? unavailableTimesMessage(settings?.contact_phone) : null}
           />
         )}
 
