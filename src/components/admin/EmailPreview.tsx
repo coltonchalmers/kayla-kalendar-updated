@@ -40,10 +40,9 @@ const PREVIEW_DATA: Record<string, any> = {
 
 interface EmailPreviewProps {
   template: EmailTemplate;
-  logoUrl?: string;
 }
 
-function EmailPreviewInner({ template, logoUrl }: EmailPreviewProps) {
+function EmailPreviewInner({ template }: EmailPreviewProps) {
   const [html, setHtml] = useState('');
   const [rendering, setRendering] = useState(true);
 
@@ -52,7 +51,7 @@ function EmailPreviewInner({ template, logoUrl }: EmailPreviewProps) {
     setRendering(true);
 
     const tree = (
-      <EmailShell previewText={template.previewText ?? ''} logoUrl={logoUrl}>
+      <EmailShell previewText={template.previewText ?? ''} assetBaseUrl={window.location.origin}>
         {(template.component.children ?? []).map((child) => (
           <EmailComponentRenderer key={child.id} component={child} data={PREVIEW_DATA} />
         ))}
@@ -77,7 +76,7 @@ function EmailPreviewInner({ template, logoUrl }: EmailPreviewProps) {
     return () => {
       cancelled = true;
     };
-  }, [template, logoUrl]);
+  }, [template]);
 
   return (
     <div className="flex flex-col h-full">

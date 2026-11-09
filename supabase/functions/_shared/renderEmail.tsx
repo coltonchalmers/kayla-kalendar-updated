@@ -12,10 +12,9 @@ export function mergeTemplates(saved: AllEmailTemplates | null | undefined): All
 export async function renderTemplateHtml(
   template: EmailTemplate,
   data: Record<string, any>,
-  logoUrl?: string,
 ): Promise<{ html: string; subject: string }> {
   const tree = (
-    <EmailShell previewText={template.previewText ?? ''} logoUrl={logoUrl}>
+    <EmailShell previewText={template.previewText ?? ''} assetBaseUrl={String(data.site_url ?? '')}>
       {(template.component.children ?? []).map((child) => (
         <EmailComponentRenderer key={child.id} component={child} data={data} />
       ))}
@@ -69,7 +68,6 @@ export async function renderEmailWithFallback(
   data: Record<string, any>,
   templates: AllEmailTemplates | null | undefined,
   fallback: () => RenderResult,
-  logoUrl?: string,
 ): Promise<RenderResult> {
   try {
     const template = getTemplate(templates, emailType);
@@ -77,7 +75,7 @@ export async function renderEmailWithFallback(
       console.warn(`[email-render] No template found for "${emailType}" in saved settings, using fallback.`);
       return fallback();
     }
-    return await renderTemplateHtml(template, data, logoUrl);
+    return await renderTemplateHtml(template, data);
   } catch (err) {
     console.warn(`[email-render] Failed to render template for "${emailType}", falling back to plain-text HTML:`, err);
     return fallback();

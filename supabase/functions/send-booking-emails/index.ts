@@ -425,6 +425,7 @@ function buildEmailData(
     zoom_passcode: (booking as any).zoom_passcode || "",
     google_calendar_url: calLink,
     booking_link: manageLink,
+    site_url: publicSiteUrl,
     notes_to_client: booking.notes_to_client || "",
     client_notes: booking.client_notes || "",
     business_contact_email: settings.contact_email || "",
@@ -782,6 +783,7 @@ Deno.serve(async (req: Request) => {
 
       const mergedTemplates = mergeTemplates(settings.email_templates_json);
       const dailySummaryData: Record<string, any> = {
+        site_url: effectiveSiteUrl,
         business_name: settings.business_name,
         business_contact_email: settings.contact_email || "",
         business_contact_phone: settings.contact_phone || "",
@@ -1242,6 +1244,7 @@ Deno.serve(async (req: Request) => {
       });
 
       const adminChangeData: Record<string, any> = {
+        site_url: effectiveSiteUrl,
         client_name: clientName,
         business_name: settings.business_name,
         business_contact_email: settings.contact_email || "",

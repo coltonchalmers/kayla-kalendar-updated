@@ -339,6 +339,7 @@ function buildEmailData(
     zoom_link: effectiveZoomLink || "",
     zoom_passcode: booking.zoom_passcode || "",
     booking_link: manageLink,
+    site_url: siteUrl,
     notes_to_client: booking.notes_to_client || "",
     client_notes: booking.client_notes || "",
     business_contact_email: settings.contact_email || "",
@@ -666,6 +667,7 @@ Deno.serve(async (req: Request) => {
                   console.error("Dedup check failed for daily summary:", dedupErr.message);
                 } else if (!existingLog) {
                   const dailySummaryData: Record<string, any> = {
+                    site_url: userSiteUrl,
                     business_name: settings.business_name,
                     business_contact_email: settings.contact_email || "",
                     business_contact_phone: settings.contact_phone || "",
