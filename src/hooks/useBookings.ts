@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Booking, BookingChange, MeetingLocationType } from '@/lib/types';
 import { minutesToTime, timeToMinutes } from '@/lib/utils';
-import { triggerBookingEmails, triggerAdminChangeNotification } from '@/lib/bookingEmails';
+import { triggerBookingEmails, triggerAdminChangeNotification, type ClientChangeField } from '@/lib/bookingEmails';
 import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync';
 
 interface BookingInput {
@@ -430,8 +430,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     id: string,
     meetingTypeId: string,
     newDurationMinutes: number,
-    bufferMinutes: number,
-    sendEmail: boolean = false
+    bufferMinutes: number
   ) => {
     const booking = bookings.find(b => b.id === id);
     if (!booking) throw new Error('Booking not found');
@@ -468,10 +467,6 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
-    if (sendEmail) {
-      await triggerBookingEmails(id, { emailType: 'change' });
-    }
-
     triggerGoogleCalendarSync(id);
 
     return { data, bufferWarning: conflictCheck.hasBufferOverlap };
@@ -487,7 +482,7 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
       notes_to_client?: string | null;
       meeting_location_type?: MeetingLocationType;
     },
-    sendEmail: boolean = false
+    changedFields: ClientChangeField[] = []
   ) => {
     const { data, error: mutationError } = await supabase
       .from('bookings')
@@ -499,8 +494,8 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
     if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
 
-    if (sendEmail) {
-      await triggerBookingEmails(id, { emailType: 'change' });
+    if (changedFields.length > 0) {
+      await triggerBookingEmails(id, { emailType: 'change', changedFields });
     }
 
     triggerGoogleCalendarSync(id);
@@ -573,7 +568,8 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
 
   const updateBookingNotes = useCallback(async (
     id: string,
-    notes: { internal_notes?: string | null; notes_to_client?: string | null }
+    notes: { internal_notes?: string | null; notes_to_client?: string | null },
+    changedFields: ClientChangeField[] = []
   ) => {
     const { data, error: mutationError } = await supabase
       .from('bookings')
@@ -584,6 +580,11 @@ export function useBookings(options?: { autoFetch?: boolean; userId?: string }) 
 
     if (mutationError) throw mutationError;
     setBookings(prev => prev.map(b => b.id === id ? data : b));
+
+    if (changedFields.length > 0) {
+      await triggerBookingEmails(id, { emailType: 'change', changedFields });
+    }
+
     return data;
   }, []);
 

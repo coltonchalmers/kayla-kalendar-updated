@@ -16,7 +16,7 @@ import { useBookings, type ConflictResult } from '@/hooks/useBookings';
 import { useMeetingTypes } from '@/hooks/useMeetingTypes';
 import { useSettings } from '@/hooks/useSettings';
 import { useAvailability } from '@/hooks/useAvailability';
-import { triggerResendEmail, triggerDummyEmail, triggerRescheduleProposalEmail, type EmailResult } from '@/lib/bookingEmails';
+import { triggerResendEmail, triggerDummyEmail, triggerRescheduleProposalEmail, type EmailResult, type ClientChangeField } from '@/lib/bookingEmails';
 import { parseError } from '@/lib/errors';
 import { useRescheduleProposals } from '@/hooks/useRescheduleProposals';
 import type { Booking, BookingChange, MeetingType, MeetingLocationType } from '@/lib/types';
@@ -68,7 +68,8 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
   const [editPhone, setEditPhone] = useState('');
   const [editZoomLink, setEditZoomLink] = useState('');
   const [editMeetingLocation, setEditMeetingLocation] = useState<MeetingLocationType>('zoom');
-  const [notifyClient, setNotifyClient] = useState(false);
+  const [notifyClient, setNotifyClient] = useState(true);
+  const [confirmSave, setConfirmSave] = useState<'details' | 'notes' | null>(null);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [bufferWarning, setBufferWarning] = useState<string | null>(null);
 
@@ -145,7 +146,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
     setEditMeetingLocation(booking.meeting_location_type || 'zoom');
     setEditInternalNotes(booking.internal_notes || '');
     setEditNotesToClient(booking.notes_to_client || '');
-    setNotifyClient(false);
+    setNotifyClient(true);
     setRescheduleDate(booking.date);
     setRescheduleTime(booking.start_time);
     setRescheduleSlots([]);
@@ -242,7 +243,48 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
     } finally { setActionLoading(false); }
   };
 
-  const handleSaveEdit = async () => {
+  const notifyToggle = (
+    <label className="flex items-center gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={notifyClient}
+        onChange={e => setNotifyClient(e.target.checked)}
+        className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
+      />
+      <div className="flex items-center gap-1.5">
+        <Bell className="w-3.5 h-3.5 text-gray-500" />
+        <span className="text-sm font-medium text-gray-700">Notify client of these changes</span>
+      </div>
+    </label>
+  );
+
+  const CLIENT_FIELD_LABELS: Record<ClientChangeField, string> = {
+    meeting_type: 'Meeting type',
+    client_email: 'Email address',
+    client_phone: 'Phone number',
+    zoom_link: 'Zoom link',
+    meeting_location_type: 'Meeting location',
+    notes_to_client: 'Notes to client',
+  };
+
+  const detailChangedFields = (): ClientChangeField[] => {
+    if (!booking) return [];
+    const fields: ClientChangeField[] = [];
+    if (editMeetingTypeId !== (booking.meeting_type_id || '')) fields.push('meeting_type');
+    if (editEmail !== booking.client_email) fields.push('client_email');
+    if ((editPhone || null) !== (booking.client_phone || null)) fields.push('client_phone');
+    if ((editZoomLink || null) !== (booking.zoom_link || null)) fields.push('zoom_link');
+    if (editMeetingLocation !== (booking.meeting_location_type || 'zoom')) fields.push('meeting_location_type');
+    if ((editNotesToClient || null) !== (booking.notes_to_client || null)) fields.push('notes_to_client');
+    return fields;
+  };
+
+  const notesChangedFields = (): ClientChangeField[] =>
+    booking && (editNotesToClient || null) !== (booking.notes_to_client || null) ? ['notes_to_client'] : [];
+
+  const pendingEmailFields = confirmSave === 'notes' ? notesChangedFields() : detailChangedFields();
+
+  const performSaveEdit = async (emailFields: ClientChangeField[]) => {
     if (!booking || conflictError) return;
     setActionLoading(true);
     setActionError(null);
@@ -252,7 +294,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
         if (mt) {
           await updateBookingMeetingType(
             booking.id, editMeetingTypeId, mt.duration_minutes,
-            settings?.buffer_minutes ?? 0, notifyClient
+            settings?.buffer_minutes ?? 0
           );
         }
       }
@@ -263,12 +305,21 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
         internal_notes: editInternalNotes || null,
         notes_to_client: editNotesToClient || null,
         meeting_location_type: editMeetingLocation,
-      }, notifyClient);
+      }, emailFields);
       await refreshAndClose();
     } catch (err) {
       const parsed = parseError(err);
       setActionError(`${parsed.type}: ${parsed.message}\n\nPossible cause: ${parsed.details || 'The server rejected this action.'}`);
     } finally { setActionLoading(false); }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!booking || conflictError) return;
+    if (notifyClient && detailChangedFields().length > 0) {
+      setConfirmSave('details');
+      return;
+    }
+    await performSaveEdit([]);
   };
 
   const handleProposeReschedule = async () => {
@@ -307,7 +358,7 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
     }
   };
 
-  const handleSaveNotes = async () => {
+  const performSaveNotes = async (emailFields: ClientChangeField[]) => {
     if (!booking) return;
     setNotesSaving(true);
     setActionError(null);
@@ -315,13 +366,32 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
       await updateBookingNotes(booking.id, {
         internal_notes: editInternalNotes || null,
         notes_to_client: editNotesToClient || null,
-      });
+      }, emailFields);
       await fetchBookings();
     } catch (err) {
       const parsed = parseError(err);
       setActionError(`${parsed.type}: ${parsed.message}\n\nPossible cause: ${parsed.details || 'The server rejected this action.'}`);
     } finally {
       setNotesSaving(false);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!booking) return;
+    if (notifyClient && notesChangedFields().length > 0) {
+      setConfirmSave('notes');
+      return;
+    }
+    await performSaveNotes([]);
+  };
+
+  const handleConfirmSave = async () => {
+    const kind = confirmSave;
+    setConfirmSave(null);
+    if (kind === 'notes') {
+      await performSaveNotes(notesChangedFields());
+    } else {
+      await performSaveEdit(detailChangedFields());
     }
   };
 
@@ -704,7 +774,8 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
               />
             </Card>
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {notifyToggle}
               <Button
                 variant="outline"
                 size="sm"
@@ -909,22 +980,12 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
               </Card>
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer pt-2 border-t">
-              <input
-                type="checkbox"
-                checked={notifyClient}
-                onChange={e => setNotifyClient(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-jungo-green-500 focus:ring-jungo-green-500"
-              />
-              <div className="flex items-center gap-1.5">
-                <Bell className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Notify client of these changes</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
+              {notifyToggle}
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => { setMode('view'); setConflictError(null); setBufferWarning(null); }}>Cancel</Button>
+                <Button onClick={handleSaveEdit} loading={actionLoading} disabled={!!conflictError} icon={<Save className="w-4 h-4" />}>Save Changes</Button>
               </div>
-            </label>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => { setMode('view'); setConflictError(null); setBufferWarning(null); }}>Cancel</Button>
-              <Button onClick={handleSaveEdit} loading={actionLoading} disabled={!!conflictError} icon={<Save className="w-4 h-4" />}>Save Changes</Button>
             </div>
           </div>
         )}
@@ -1246,6 +1307,27 @@ export default function BookingDetailsModal({ booking, open, onClose }: Props) {
             </div>
           </div>
         )}
+      </div>
+    </Modal>
+
+    <Modal open={confirmSave !== null} onClose={() => setConfirmSave(null)} title="Notify the Client?" maxWidth="sm">
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <Bell className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">Your client will receive an email about these changes:</p>
+            <ul className="text-sm text-amber-800 mt-2 list-disc list-inside space-y-1">
+              {pendingEmailFields.map(field => (
+                <li key={field}>{CLIENT_FIELD_LABELS[field]}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600">If you do not want the client notified, go back and uncheck &quot;Notify client of these changes&quot;.</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => setConfirmSave(null)}>Go Back</Button>
+          <Button onClick={handleConfirmSave} loading={actionLoading || notesSaving}>Send and Save</Button>
+        </div>
       </div>
     </Modal>
 

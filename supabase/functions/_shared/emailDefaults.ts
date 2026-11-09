@@ -117,11 +117,10 @@ export const defaultEmailTemplates: AllEmailTemplates = {
     'Your meeting details with {{business_name}} have been updated.',
     [
       heading('Booking Updated'),
-      text('Hi {{client_name}},\n\nYour meeting details with {{business_name}} have been updated.\n\nDate: {{client_date}}\nTime: {{client_time}}\nDuration: {{duration}} minutes'),
+      text('Hi {{client_name}},\n\nYour meeting details with {{business_name}} have been updated. Here is what changed:'),
       spacer(8),
       staticBlock('changeDetails'),
       staticBlock('zoom'),
-      labeledBlock('notesToClient', 'Notes'),
       manageBookingLink(),
       divider(),
       staticBlock('footer'),

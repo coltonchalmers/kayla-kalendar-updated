@@ -123,6 +123,28 @@ interface TriggerOptions {
 const TEST_SUBJECT_PREFIX = "[TEST] ";
 const CHANGE_DETAILS_TYPES = new Set(["change", "admin_change_notification", "admin_reschedule_notification", "admin_cancellation_notification"]);
 
+const CLIENT_CHANGE_FIELDS = ["meeting_type", "client_email", "client_phone", "zoom_link", "meeting_location_type", "notes_to_client"];
+
+function buildClientChangeDetails(
+  booking: { client_email: string; client_phone: string | null; meeting_location_type: string | null; notes_to_client: string | null },
+  changedFields: unknown,
+  meetingTypeName: string | null,
+  zoomLink: string | null,
+): string {
+  const fields = Array.isArray(changedFields) ? changedFields : [];
+  const lines: string[] = [];
+  for (const field of CLIENT_CHANGE_FIELDS) {
+    if (!fields.includes(field)) continue;
+    if (field === "meeting_type") lines.push(`Meeting type: ${meetingTypeName || "None"}`);
+    if (field === "client_email") lines.push(`Email address: ${booking.client_email}`);
+    if (field === "client_phone") lines.push(`Phone number: ${booking.client_phone || "Removed"}`);
+    if (field === "zoom_link") lines.push(`Zoom link: ${zoomLink || "Removed"}`);
+    if (field === "meeting_location_type") lines.push(`Meeting location: ${booking.meeting_location_type === "phone" ? "Phone call" : "Zoom meeting"}`);
+    if (field === "notes_to_client") lines.push(`Notes to client updated:\n${booking.notes_to_client || "Removed"}`);
+  }
+  return lines.join("\n\n");
+}
+
 const DEFAULT_TEMPLATES: Record<string, string> = {
   invite: `Hi {{client_name}},
 
@@ -748,7 +770,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const body: { bookingId?: string } & TriggerOptions = await req.json();
-    const { emailType, bookingId, inviteLink, inviteClientName, inviteClientEmail, inviteNotesToClient, oldDate, oldTime, newDate, newTime, siteUrl, bookingIds, forceResend, dummyMode, dummyRecipient, adminDailySummary, changeType, internalNotes, clientNotes } = body;
+    const { emailType, bookingId, inviteLink, inviteClientName, inviteClientEmail, inviteNotesToClient, oldDate, oldTime, newDate, newTime, siteUrl, bookingIds, forceResend, dummyMode, dummyRecipient, adminDailySummary, changeType, internalNotes, clientNotes, changedFields } = body;
 
     const effectiveSiteUrl = siteUrl || publicSiteUrl;
 
@@ -933,7 +955,10 @@ Deno.serve(async (req: Request) => {
         templateVars.session_list = `1. ${dummyDateTime.client_date} at ${dummyDateTime.client_time}\n2. ${dummyDateTime.client_date} at ${dummyDateTime.client_time}`;
       }
 
-      if (CHANGE_DETAILS_TYPES.has(type)) {
+      if (type === "change") {
+        templateVars.change_type = "updated";
+        templateVars.change_details = "Notes to client updated:\nThis is a test note to the client.";
+      } else if (CHANGE_DETAILS_TYPES.has(type)) {
         templateVars.change_type = "rescheduled";
         templateVars.change_details = `Previous: ${dummyDateTime.client_date} at 09:00 AM\nNew: ${dummyDateTime.client_date} at ${dummyDateTime.client_time}`;
       }
@@ -955,7 +980,7 @@ Deno.serve(async (req: Request) => {
       }
 
       if (CHANGE_DETAILS_TYPES.has(type)) {
-        dummyExtraData.change_type = "rescheduled";
+        dummyExtraData.change_type = templateVars.change_type;
         dummyExtraData.change_details = templateVars.change_details;
         dummyExtraData.client_email = templateVars.client_email;
       }
@@ -1492,6 +1517,14 @@ Deno.serve(async (req: Request) => {
     };
 
     const extraData: Record<string, any> = {};
+
+    if (type === "change") {
+      const changeDetails = buildClientChangeDetails(booking, changedFields, meetingType?.name ?? null, effectiveZoomLink);
+      templateVars.change_type = "updated";
+      templateVars.change_details = changeDetails;
+      extraData.change_type = "updated";
+      extraData.change_details = changeDetails;
+    }
 
     if (type === "reschedule") {
       const displayTz = getDisplayTimezone(booking, adminTz);

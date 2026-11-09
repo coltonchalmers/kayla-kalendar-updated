@@ -30,7 +30,7 @@ const PREVIEW_DATA: Record<string, any> = {
   new_date: '2026-10-13',
   new_time: '14:00',
   change_type: 'updated',
-  change_details: 'I would like to discuss the quarterly report and review the budget for next quarter. Could we also go over the onboarding timeline before we meet?',
+  change_details: 'Notes to client updated:\nLooking forward to our session. Please come prepared with your questions.',
   client_email: 'jane.doe@example.com',
   client_status: 'New client',
   meeting_location: 'Zoom',

@@ -15,8 +15,17 @@ type EmailType =
   | 'reminder'
   | 'admin_daily_summary';
 
+export type ClientChangeField =
+  | 'meeting_type'
+  | 'client_email'
+  | 'client_phone'
+  | 'zoom_link'
+  | 'meeting_location_type'
+  | 'notes_to_client';
+
 interface TriggerOptions {
   emailType?: EmailType;
+  changedFields?: ClientChangeField[];
   inviteLink?: string;
   inviteClientName?: string;
   inviteClientEmail?: string;
@@ -178,13 +187,6 @@ export async function triggerRescheduleProposalEmail(
     inviteLink: rescheduleLink,
     inviteNotesToClient: message,
   });
-}
-
-export async function triggerChangeEmail(
-  bookingId: string,
-  options?: { oldDate?: string; oldTime?: string; newDate?: string; newTime?: string }
-): Promise<EmailResult> {
-  return callEmailFunction({ bookingId, emailType: 'change', ...options });
 }
 
 export async function triggerAdminChangeNotification(
