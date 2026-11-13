@@ -50,11 +50,18 @@ function createSupabaseAdmin() {
   );
 }
 
-async function requireUser(req: Request, supabase: ReturnType<typeof createClient>): Promise<string | null> {
-  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return null;
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return null;
+async function requireUser(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+  const userClient = createClient(getEnv("SUPABASE_URL"), getEnv("SUPABASE_ANON_KEY"), {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await userClient.auth.getUser();
+  if (error || !data.user) {
+    console.error("Session check failed:", error?.message ?? "no user");
+    return null;
+  }
   return data.user.id;
 }
 
@@ -576,7 +583,7 @@ Deno.serve(async (req: Request) => {
       const code = url.searchParams.get("code")!;
       const state = url.searchParams.get("state");
 
-      const signedInUserId = await requireUser(req, supabase);
+      const signedInUserId = await requireUser(req);
       if (!signedInUserId) return jsonResponse({ error: "Please sign in again to connect Google Calendar" }, 401);
 
       const stateUserId = state ? await verifyOAuthState(state) : null;
@@ -626,7 +633,7 @@ Deno.serve(async (req: Request) => {
       const clientId = getClientId();
       if (!clientId) return jsonResponse({ error: "Google OAuth not configured" }, 500);
 
-      const userId = await requireUser(req, supabase);
+      const userId = await requireUser(req);
       if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       const authUrl = new URL(GOOGLE_AUTH_URL);
@@ -643,7 +650,7 @@ Deno.serve(async (req: Request) => {
 
     // ---- Disconnect ----
     if (mode === "disconnect") {
-      const userId = await requireUser(req, supabase);
+      const userId = await requireUser(req);
       if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       await supabase
@@ -683,7 +690,7 @@ Deno.serve(async (req: Request) => {
 
     // ---- List calendars on the connected account ----
     if (mode === "list-calendars") {
-      const userId = await requireUser(req, supabase);
+      const userId = await requireUser(req);
       if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       const { data: connection } = await supabase

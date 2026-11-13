@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`;
 
+export const GOOGLE_CALENDAR_CONNECTED_MESSAGE = 'google-calendar-connected';
+
 const headers = () => ({
   Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
   'Content-Type': 'application/json',

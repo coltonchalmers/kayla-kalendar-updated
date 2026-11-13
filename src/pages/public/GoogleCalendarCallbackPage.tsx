@@ -4,6 +4,7 @@ import { Check, X, Loader2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
+import { GOOGLE_CALENDAR_CONNECTED_MESSAGE } from '@/lib/googleCalendarSync';
 
 export default function GoogleCalendarCallbackPage() {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ export default function GoogleCalendarCallbackPage() {
         if (res.ok && data.connected) {
           setStatus('success');
           setMessage(`Connected to ${data.email || 'your Google Calendar'}.`);
+          window.opener?.postMessage({ type: GOOGLE_CALENDAR_CONNECTED_MESSAGE }, window.location.origin);
         } else {
           setStatus('error');
           setMessage(data.error || 'Failed to connect to Google Calendar.');
@@ -54,6 +56,14 @@ export default function GoogleCalendarCallbackPage() {
         setMessage(err instanceof Error && err.message.startsWith('Please sign in') ? err.message : 'Network error while connecting to Google Calendar.');
       });
   }, []);
+
+  const returnToSettings = () => {
+    if (window.opener) {
+      window.close();
+      return;
+    }
+    navigate('/admin/settings');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -71,10 +81,10 @@ export default function GoogleCalendarCallbackPage() {
             <h1 className="text-xl font-bold text-gray-900 mb-2">Google Calendar Connected</h1>
             <p className="text-sm text-gray-500 mb-6">{message}</p>
             <button
-              onClick={() => navigate('/admin/settings')}
+              onClick={returnToSettings}
               className="text-sm font-medium text-jungo-green-600 hover:text-jungo-green-700 transition-colors"
             >
-              Back to Settings
+              {window.opener ? 'Close window' : 'Back to Settings'}
             </button>
           </>
         )}
@@ -86,10 +96,10 @@ export default function GoogleCalendarCallbackPage() {
             <h1 className="text-xl font-bold text-gray-900 mb-2">Connection Failed</h1>
             <p className="text-sm text-gray-500 mb-6">{message}</p>
             <button
-              onClick={() => navigate('/admin/settings')}
+              onClick={returnToSettings}
               className="text-sm font-medium text-jungo-green-600 hover:text-jungo-green-700 transition-colors"
             >
-              Back to Settings
+              {window.opener ? 'Close window' : 'Back to Settings'}
             </button>
           </>
         )}

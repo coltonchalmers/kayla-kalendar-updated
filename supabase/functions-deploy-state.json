@@ -3,7 +3,7 @@
   "functions": {
     "google-calendar-sync": {
       "hasChanged": false,
-      "hash": "a7e29f4ba1a763a3030e693aecb43bf5c71d482c851682637d05135fb7d6190e"
+      "hash": "8c8bda631c2ae9cd9d2765ce06e392dd212aaaee27413a695b49d288bfd3b5bb"
     },
     "send-booking-emails": {
       "hasChanged": false,
