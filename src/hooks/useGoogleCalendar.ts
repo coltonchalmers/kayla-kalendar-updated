@@ -35,7 +35,7 @@ export function useGoogleCalendar() {
     setConnecting(true);
     setError(null);
     try {
-      const url = await getGoogleAuthUrl(user.id);
+      const url = await getGoogleAuthUrl();
       window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect');
@@ -47,7 +47,7 @@ export function useGoogleCalendar() {
     if (!user?.id) return;
     setError(null);
     try {
-      await disconnectGoogleCalendar(user.id);
+      await disconnectGoogleCalendar();
       setConnection(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to disconnect');

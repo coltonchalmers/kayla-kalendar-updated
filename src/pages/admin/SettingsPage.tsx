@@ -96,7 +96,7 @@ function GoogleCalendarCard({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-jungo-green-800">Connected</p>
-              <p className="text-xs text-jungo-green-600 truncate">{connection?.google_email}</p>
+              <p className="text-xs text-jungo-green-600 truncate">{connection?.google_email || 'Google account'}</p>
             </div>
             <button
               onClick={disconnect}

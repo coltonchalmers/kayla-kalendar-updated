@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, X, Loader2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { supabase } from '@/lib/supabase';
 
 export default function GoogleCalendarCallbackPage() {
   const navigate = useNavigate();
@@ -26,16 +27,18 @@ export default function GoogleCalendarCallbackPage() {
       return;
     }
 
-    // The edge function handles the OAuth callback via the code in the URL.
-    // We redirect to the function endpoint which exchanges the code, then
-    // we poll the connection status.
+    // The edge function exchanges the code for tokens on behalf of the signed-in admin.
     const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync?code=${encodeURIComponent(code)}&state=${encodeURIComponent(params.get('state') || '')}`;
 
-    fetch(functionUrl, {
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-      },
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        const token = data.session?.access_token;
+        if (!token) throw new Error('Please sign in again to finish connecting Google Calendar.');
+        return fetch(functionUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.connected) {
@@ -46,9 +49,9 @@ export default function GoogleCalendarCallbackPage() {
           setMessage(data.error || 'Failed to connect to Google Calendar.');
         }
       })
-      .catch(() => {
+      .catch(err => {
         setStatus('error');
-        setMessage('Network error while connecting to Google Calendar.');
+        setMessage(err instanceof Error && err.message.startsWith('Please sign in') ? err.message : 'Network error while connecting to Google Calendar.');
       });
   }, []);
 

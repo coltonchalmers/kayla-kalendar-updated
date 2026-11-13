@@ -7,11 +7,18 @@ const headers = () => ({
   'Content-Type': 'application/json',
 });
 
-export async function getGoogleAuthUrl(userId: string): Promise<string> {
+async function signedInHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Please sign in again to manage Google Calendar');
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+export async function getGoogleAuthUrl(): Promise<string> {
   const res = await fetch(FUNCTION_URL, {
     method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ mode: 'auth-url', userId }),
+    headers: await signedInHeaders(),
+    body: JSON.stringify({ mode: 'auth-url' }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -21,11 +28,11 @@ export async function getGoogleAuthUrl(userId: string): Promise<string> {
   return data.url as string;
 }
 
-export async function disconnectGoogleCalendar(userId: string): Promise<void> {
+export async function disconnectGoogleCalendar(): Promise<void> {
   const res = await fetch(FUNCTION_URL, {
     method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ mode: 'disconnect', userId }),
+    headers: await signedInHeaders(),
+    body: JSON.stringify({ mode: 'disconnect' }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -66,11 +73,11 @@ export interface GoogleCalendarOption {
   primary: boolean;
 }
 
-export async function listGoogleCalendars(userId: string): Promise<GoogleCalendarOption[]> {
+export async function listGoogleCalendars(): Promise<GoogleCalendarOption[]> {
   const res = await fetch(FUNCTION_URL, {
     method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ mode: 'list-calendars', userId }),
+    headers: await signedInHeaders(),
+    body: JSON.stringify({ mode: 'list-calendars' }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Failed to load your calendars');

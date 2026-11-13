@@ -12,7 +12,9 @@ const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
+const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -46,6 +48,46 @@ function createSupabaseAdmin() {
     getEnv("SUPABASE_SERVICE_ROLE_KEY"),
     { auth: { persistSession: false } }
   );
+}
+
+async function requireUser(req: Request, supabase: ReturnType<typeof createClient>): Promise<string | null> {
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) return null;
+  return data.user.id;
+}
+
+async function oauthStateKey(): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(getEnv("SUPABASE_SERVICE_ROLE_KEY")),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"]
+  );
+}
+
+async function signOAuthState(userId: string): Promise<string> {
+  const payload = `${userId}.${Date.now() + OAUTH_STATE_TTL_MS}`;
+  const sig = await crypto.subtle.sign("HMAC", await oauthStateKey(), new TextEncoder().encode(payload));
+  const hex = Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, "0")).join("");
+  return `${payload}.${hex}`;
+}
+
+async function verifyOAuthState(state: string): Promise<string | null> {
+  const parts = state.split(".");
+  if (parts.length !== 3) return null;
+  const [userId, expiresAt, hex] = parts;
+  if (Number(expiresAt) < Date.now()) return null;
+  const sigBytes = new Uint8Array((hex.match(/../g) ?? []).map(h => parseInt(h, 16)));
+  const valid = await crypto.subtle.verify(
+    "HMAC",
+    await oauthStateKey(),
+    sigBytes,
+    new TextEncoder().encode(`${userId}.${expiresAt}`)
+  );
+  return valid ? userId : null;
 }
 
 // ============================================================
@@ -109,13 +151,13 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   return await res.json();
 }
 
-async function getGoogleUserInfo(accessToken: string): Promise<string> {
+async function getGoogleUserInfo(accessToken: string): Promise<string | null> {
   const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) return "unknown";
+  if (!res.ok) return null;
   const data = await res.json();
-  return data.email || "unknown";
+  return data.email || null;
 }
 
 async function getValidAccessToken(supabase: ReturnType<typeof createClient>, connection: {
@@ -534,10 +576,14 @@ Deno.serve(async (req: Request) => {
       const code = url.searchParams.get("code")!;
       const state = url.searchParams.get("state");
 
-      if (!state) return jsonResponse({ error: "Missing state" }, 400);
+      const signedInUserId = await requireUser(req, supabase);
+      if (!signedInUserId) return jsonResponse({ error: "Please sign in again to connect Google Calendar" }, 401);
 
-      // Verify the user via state (we pass user_id as state)
-      const userId = state;
+      const stateUserId = state ? await verifyOAuthState(state) : null;
+      if (!stateUserId || stateUserId !== signedInUserId) {
+        return jsonResponse({ error: "This Google connection request could not be verified. Please try again." }, 400);
+      }
+      const userId = signedInUserId;
 
       const tokens = await exchangeCodeForTokens(code);
       const googleEmail = await getGoogleUserInfo(tokens.access_token);
@@ -580,8 +626,8 @@ Deno.serve(async (req: Request) => {
       const clientId = getClientId();
       if (!clientId) return jsonResponse({ error: "Google OAuth not configured" }, 500);
 
-      const userId = body.userId as string;
-      if (!userId) return jsonResponse({ error: "Missing userId" }, 400);
+      const userId = await requireUser(req, supabase);
+      if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       const authUrl = new URL(GOOGLE_AUTH_URL);
       authUrl.searchParams.set("client_id", clientId);
@@ -590,15 +636,15 @@ Deno.serve(async (req: Request) => {
       authUrl.searchParams.set("scope", SCOPES);
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
-      authUrl.searchParams.set("state", userId);
+      authUrl.searchParams.set("state", await signOAuthState(userId));
 
       return jsonResponse({ url: authUrl.toString() });
     }
 
     // ---- Disconnect ----
     if (mode === "disconnect") {
-      const userId = body.userId as string;
-      if (!userId) return jsonResponse({ error: "Missing userId" }, 400);
+      const userId = await requireUser(req, supabase);
+      if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       await supabase
         .from("google_calendar_connections")
@@ -637,8 +683,8 @@ Deno.serve(async (req: Request) => {
 
     // ---- List calendars on the connected account ----
     if (mode === "list-calendars") {
-      const userId = body.userId as string;
-      if (!userId) return jsonResponse({ error: "Missing userId" }, 400);
+      const userId = await requireUser(req, supabase);
+      if (!userId) return jsonResponse({ error: "Please sign in again" }, 401);
 
       const { data: connection } = await supabase
         .from("google_calendar_connections")

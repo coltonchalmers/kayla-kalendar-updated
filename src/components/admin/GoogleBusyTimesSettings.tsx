@@ -23,7 +23,7 @@ export default function GoogleBusyTimesSettings({ connection, onSaved }: GoogleB
 
   useEffect(() => {
     let cancelled = false;
-    listGoogleCalendars(connection.user_id)
+    listGoogleCalendars()
       .then(list => {
         if (!cancelled) setCalendars(list);
       })
@@ -36,7 +36,7 @@ export default function GoogleBusyTimesSettings({ connection, onSaved }: GoogleB
     return () => {
       cancelled = true;
     };
-  }, [connection.user_id]);
+  }, []);
 
   const savedIds = connection.busy_calendar_ids;
   const dirty =
